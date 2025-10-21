@@ -1,0 +1,2839 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI编程大赛-实时对战数据</title>
+  <!-- 引入外部资源 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+  
+  <!-- 配置Tailwind -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#165DFF',
+            ai: '#00F0FF',       // AI组主色：亮青色
+            nonai: '#FF6B9B',    // 非AI组主色：亮粉色
+            gold: '#FFD700',     // 冠军色：金色
+            silver: '#C0C0C0',   // 亚军色：银色
+            bronze: '#CD7F32',   // 季军色：青铜色
+            dark: '#0F172A',
+            darker: '#0A0F1F',
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+        },
+      }
+    }
+  </script>
+  
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto {
+        content-visibility: auto;
+      }
+      .text-shadow {
+        text-shadow: 0 0 8px currentColor;
+      }
+      .glow {
+        box-shadow: 0 0 15px currentColor;
+      }
+      .neural-bg {
+        background-image: radial-gradient(rgba(22, 93, 255, 0.1) 1px, transparent 1px);
+        background-size: 30px 30px;
+      }
+      .code-flow {
+        background: linear-gradient(90deg, rgba(22,93,255,0.05) 50%, rgba(0,240,255,0.05) 100%);
+        background-size: 200% 100%;
+        animation: codeFlow 15s linear infinite;
+      }
+      @keyframes codeFlow {
+        0% { background-position: 0% 0%; }
+        100% { background-position: 200% 0%; }
+      }
+      .pulse-slow {
+        animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+      .float {
+        animation: float 6s ease-in-out infinite;
+      }
+      @keyframes float {
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-15px); }
+        100% { transform: translateY(0px); }
+      }
+      .timer-progress {
+        stroke-dasharray: 283;
+        transform: rotate(-90deg);
+        transform-origin: 50% 50%;
+        transition: stroke-dashoffset 1s linear;
+      }
+      .binary-flow::before {
+        content: "01011010101100101110101010101101010110101010101101010101011010101";
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        color: rgba(0, 240, 255, 0.05);
+        overflow: hidden;
+        animation: binaryScroll 20s linear infinite;
+        pointer-events: none;
+      }
+      @keyframes binaryScroll {
+        0% { transform: translateY(-100%); }
+        100% { transform: translateY(100%); }
+      }
+      .rank-item-hover {
+        transition: all 0.3s ease;
+      }
+      .rank-item-hover:hover {
+        transform: translateX(4px);
+        background-color: rgba(22, 93, 255, 0.1);
+      }
+      
+      /* 文本渐变效果 */
+      .text-gradient {
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      
+      /* 庆祝动画相关样式 */
+      .celebration-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 1000;
+        display: none;
+      }
+      .celebration-container.active {
+        display: block;
+      }
+      .confetti {
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        opacity: 0;
+      }
+      .firework {
+        position: absolute;
+        border-radius: 50%;
+        opacity: 0;
+      }
+      .celebration-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 3rem;
+        font-weight: bold;
+        text-align: center;
+        opacity: 0;
+        text-shadow: 0 0 10px currentColor;
+        z-index: 1001;
+      }
+      @keyframes popIn {
+        0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+        50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+        100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      }
+      @keyframes fadeOut {
+        0% { opacity: 1; }
+        100% { opacity: 0; }
+      }
+      @keyframes flash {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+      }
+      .flash-animation {
+        animation: flash 0.5s ease-in-out 3;
+      }
+      
+      /* 二进制网格背景样式 */
+      .binary-grid {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: 
+          linear-gradient(rgba(0, 240, 255, 0.05) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0, 240, 255, 0.05) 1px, transparent 1px);
+        background-size: 30px 30px;
+        z-index: 0;
+      }
+      
+      .binary-character {
+        position: absolute;
+        color: rgba(0, 240, 255, 0.15);
+        font-family: monospace;
+        font-size: 12px;
+        pointer-events: none;
+        z-index: 0;
+        opacity: 0;
+      }
+      
+      /* 模态框样式 */
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(5px);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+      }
+      .modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
+      }
+      .modal-content {
+        background-color: #0F172A;
+        border-radius: 1rem;
+        width: 90%;
+        max-width: 800px;
+        max-height: 90vh;
+        overflow-y: auto;
+        transform: translateY(20px) scale(0.95);
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+        background-clip: padding-box;
+        background-image: linear-gradient(#0F172A, #0F172A), 
+                          linear-gradient(to right, #00F0FF, #FF6B9B);
+        background-origin: padding-box;
+      }
+      .modal-overlay.active .modal-content {
+        transform: translateY(0) scale(1);
+      }
+      .winner-badge {
+        position: relative;
+        overflow: hidden;
+      }
+      .winner-badge::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          120deg,
+          rgba(255, 215, 0, 0) 0%,
+          rgba(255, 215, 0, 0.2) 50%,
+          rgba(255, 215, 0, 0) 100%
+        );
+        transform: rotate(30deg) translateX(-100%);
+        animation: shine 3s infinite;
+      }
+      @keyframes shine {
+        100% {
+          transform: rotate(30deg) translateX(100%);
+        }
+      }
+    }
+  </style>
+</head>
+
+<body class="bg-darker text-gray-100 min-h-screen overflow-x-hidden relative" 
+      style="background: url('background.png') no-repeat center center fixed; 
+             background-size: cover;">
+  <!-- 二进制网格背景 - 增加背景层次感 -->
+  <div class="binary-grid opacity-70"></div>
+  
+  <!-- 二进制字符动画容器 -->
+  <div id="binary-characters-container" class="fixed inset-0 overflow-hidden pointer-events-none z-0"></div>
+  
+  <!-- 顶部装饰 -->
+  <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-ai via-primary to-nonai opacity-70 z-10"></div>
+  
+  <!-- 庆祝动画容器 -->
+  <div id="celebration" class="celebration-container">
+    <div id="celebration-text" class="celebration-text"></div>
+  </div>
+  
+  <!-- 比赛结果模态框 -->
+  <div id="result-modal" class="modal-overlay">
+     <div class="modal-content p-6 md:p-8">
+       <div class="text-center mb-8">
+         <h2 class="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-ai to-primary">
+           比赛结果
+         </h2>
+       </div>
+      
+      <!-- 胜者组展示 -->
+      <div class="mb-6">
+        <h3 class="text-xl font-bold mb-3 text-center">胜者组</h3>
+        <div id="winner-group" class="winner-badge p-4 rounded-xl text-center">
+          <!-- 动态填充胜者组 -->
+        </div>
+      </div>
+      
+      <!-- TOP3优秀达人 -->
+      <div>
+        <h3 class="text-xl font-bold mb-6 text-center">优秀达人 TOP 3</h3>
+        <div class="space-y-6">
+          <!-- 冠军 -->
+          <div id="final-top1" class="flex items-center gap-4 p-4 bg-gradient-to-r from-gold/10 to-transparent rounded-xl border border-gold/30">
+            <div class="w-12 h-12 rounded-full bg-gold text-dark font-bold flex items-center justify-center text-xl relative flex-shrink-0">
+              1
+              <i class="fa fa-crown absolute -top-2 -right-1 text-xs text-gold"></i>
+            </div>
+            <div class="flex-1">
+              <h4 id="top1-name" class="text-xl font-bold">张小明</h4>
+              <div class="flex items-center gap-3 mt-1">
+                <span id="top1-group" class="bg-ai/20 text-ai px-3 py-0.5 rounded-full text-xs">AI组</span>
+                <span id="top1-time" class="text-gray-400 text-sm">完成时间: 58秒</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 亚军 -->
+          <div id="final-top2" class="flex items-center gap-4 p-4 bg-gradient-to-r from-silver/10 to-transparent rounded-xl border border-silver/30">
+            <div class="w-12 h-12 rounded-full bg-silver text-dark font-bold flex items-center justify-center text-xl relative flex-shrink-0">
+              2
+            </div>
+            <div class="flex-1">
+              <h4 id="top2-name" class="text-xl font-bold">陈静</h4>
+              <div class="flex items-center gap-3 mt-1">
+                <span id="top2-group" class="bg-nonai/20 text-nonai px-3 py-0.5 rounded-full text-xs">非AI组</span>
+                <span id="top2-time" class="text-gray-400 text-sm">完成时间: 1分42秒</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 季军 -->
+          <div id="final-top3" class="flex items-center gap-4 p-4 bg-gradient-to-r from-bronze/10 to-transparent rounded-xl border border-bronze/30">
+            <div class="w-12 h-12 rounded-full bg-bronze text-dark font-bold flex items-center justify-center text-xl relative flex-shrink-0">
+              3
+            </div>
+            <div class="flex-1">
+              <h4 id="top3-name" class="text-xl font-bold">李华</h4>
+              <div class="flex items-center gap-3 mt-1">
+                <span id="top3-group" class="bg-ai/20 text-ai px-3 py-0.5 rounded-full text-xs">AI组</span>
+                <span id="top3-time" class="text-gray-400 text-sm">完成时间: 1分55秒</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 各小组数据统计表格 -->
+      <div class="mt-10">
+        <h3 class="text-xl font-bold mb-6 text-center">各小组数据统计</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full border-collapse">
+            <thead>
+              <tr class="bg-gradient-to-r from-primary/20 to-primary/10">
+                <th class="px-4 py-3 text-center text-sm font-semibold border-b border-primary/30">排名</th>
+                <th class="px-4 py-3 text-left text-sm font-semibold border-b border-primary/30">小组</th>
+                <th class="px-4 py-3 text-center text-sm font-semibold border-b border-primary/30">通过率</th>
+                <th class="px-4 py-3 text-center text-sm font-semibold border-b border-primary/30">通过人数</th>
+                <th class="px-4 py-3 text-center text-sm font-semibold border-b border-primary/30">平均通过时间</th>
+              </tr>
+            </thead>
+            <tbody id="subgroup-stats-tbody">
+              <!-- 动态填充小组数据 -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      <!-- 关闭按钮 -->
+      <div class="mt-8 text-center">
+        <button id="close-modal" class="px-6 py-3 bg-primary hover:bg-primary/80 rounded-full transition-all duration-300 font-medium">
+          关闭
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 主容器 -->
+  <div class="container mx-auto px-4 py-6 md:py-8 relative z-20">
+     <!-- 头部区域 -->
+     <header class="mb-6 md:mb-8 text-center">
+       <h1 class="text-[clamp(1.8rem,4vw,3rem)] font-bold mb-3 text-yellow-400">日新月异，AI的力量</h1>
+       <p class="text-xl md:text-2xl font-bold max-w-2xl mx-auto bg-clip-text text-transparent bg-gradient-to-r from-ai to-primary">云核心网2025南海会议 · 实战演练</p>
+      
+       <!-- 赛事状态信息 -->
+       <div class="mt-6 flex flex-wrap justify-center gap-3 md:gap-4">
+          <!-- 倒计时（20分钟） -->
+          <div class="bg-dark/50 backdrop-blur-sm px-3 py-2 rounded-full border border-primary/20 flex items-center gap-2 hover:border-primary/40 transition-all duration-300">
+            <div class="relative w-8 h-8">
+              <svg class="w-8 h-8" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="45" fill="none" stroke="#1e293b" stroke-width="10"></circle>
+                <circle id="timer-circle" class="timer-progress" cx="50" cy="50" r="45" fill="none" stroke="#00F0FF" stroke-width="10" stroke-dashoffset="0"></circle>
+              </svg>
+              <i class="fa fa-clock-o absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-ai text-xs"></i>
+            </div>
+            <span class="text-base md:text-lg">剩余时间: <span id="countdown" class="text-white font-mono font-bold text-lg md:text-xl">20:00</span></span>
+          </div>
+         
+         <!-- 总体通过率 -->
+         <div class="bg-dark/50 backdrop-blur-sm px-5 py-3 rounded-full border border-primary/20 flex items-center gap-2 hover:border-primary/40 transition-all duration-300">
+           <i class="fa fa-check-circle text-green-400 text-lg"></i>
+           <span class="text-base md:text-lg">总体通过率: <span id="overall-pass-rate" class="text-white font-semibold text-lg md:text-xl">72.3%</span></span>
+         </div>
+         
+         <div class="bg-dark/50 backdrop-blur-sm px-5 py-3 rounded-full border border-primary/20 flex items-center gap-2 hover:border-primary/40 transition-all duration-300">
+           <i class="fa fa-users text-primary text-lg"></i>
+           <span class="text-base md:text-lg">参与总人数: <span class="text-white font-semibold text-lg md:text-xl">60</span></span>
+         </div>
+        
+        <!-- 新增：结束比赛按钮 -->
+        <button id="end-competition" class="bg-primary hover:bg-primary/80 text-white px-4 py-2 rounded-full border border-primary/40 flex items-center gap-1.5 transition-all duration-300 hover:shadow-lg hover:shadow-primary/20 text-base md:text-lg">
+          <i class="fa fa-flag-checkered text-lg"></i>
+          <span>结束比赛</span>
+        </button>
+      </div>
+    </header>
+    
+     <!-- 通过率对比进度条 -->
+     <section class="mb-6 bg-dark/30 backdrop-blur-md rounded-2xl p-4 border border-primary/20 relative overflow-hidden">
+       <div class="absolute inset-0 bg-gradient-to-r from-ai/5 via-transparent to-nonai/5"></div>
+       
+       <div class="relative z-10">
+        <h2 class="text-xl md:text-2xl font-bold mb-3 text-center flex items-center justify-center gap-2">
+          <i class="fa fa-bar-chart text-primary text-lg"></i>
+          <span class="text-gradient bg-gradient-to-r from-ai via-primary to-nonai bg-clip-text text-transparent">实时通过率对比</span>
+        </h2>
+        
+        <!-- 对比条容器 -->
+        <div class="space-y-2">
+          <!-- 数值显示 -->
+          <div class="flex items-center justify-between text-base md:text-lg">
+            <div class="flex items-center gap-2">
+              <i class="fa fa-robot text-ai text-lg"></i>
+              <span class="font-semibold text-ai text-base">AI组</span>
+              <span id="vs-ai-rate" class="text-2xl md:text-3xl font-bold text-ai">78.4%</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-gray-400 font-medium text-base">VS</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span id="vs-nonai-rate" class="text-2xl md:text-3xl font-bold text-nonai">62.8%</span>
+              <span class="font-semibold text-nonai text-base">非AI组</span>
+            </div>
+          </div>
+           
+          <!-- 拔河进度条 -->
+          <div class="relative h-8 bg-dark/80 rounded-full overflow-hidden border-2 border-primary/30">
+           <!-- AI组进度（从左边开始） -->
+           <div id="vs-ai-progress" class="absolute left-0 top-0 h-full bg-gradient-to-r from-ai via-ai to-ai/70 transition-all duration-1000 ease-out flex items-center justify-end px-4" style="width: 55.5%">
+             <span class="text-base font-bold text-white drop-shadow-lg whitespace-nowrap">AI组</span>
+           </div>
+           
+           <!-- 非AI组进度（从右边开始，填充剩余空间） -->
+           <div id="vs-nonai-progress" class="absolute right-0 top-0 h-full bg-gradient-to-l from-nonai via-nonai to-nonai/70 transition-all duration-1000 ease-out flex items-center justify-start px-4" style="width: 44.5%">
+             <span class="text-base font-bold text-white drop-shadow-lg whitespace-nowrap">非AI组</span>
+           </div>
+           
+            <!-- 拔河中心点（动态位置） -->
+            <div id="vs-center-marker" class="absolute top-1/2 transform -translate-y-1/2 transition-all duration-1000 ease-out z-10" style="left: 55.5%">
+              <div class="relative">
+                <!-- 中心圆点 -->
+                <div class="w-5 h-5 rounded-full bg-white border-2 border-primary shadow-lg transform -translate-x-1/2"></div>
+                <!-- 脉动效果 -->
+                <div class="absolute top-0 left-0 w-5 h-5 rounded-full bg-primary/30 animate-ping transform -translate-x-1/2"></div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 差值显示 -->
+          <div class="text-center">
+            <span id="vs-difference" class="text-base text-gray-400">
+              AI组领先 <span class="text-primary font-semibold">15.6%</span>
+            </span>
+          </div>
+        </div>
+      </div>
+      
+       <!-- 装饰效果 -->
+       <div class="absolute top-0 left-0 w-24 h-24 bg-ai/10 rounded-full blur-3xl -ml-12 -mt-12 animate-pulse"></div>
+       <div class="absolute bottom-0 right-0 w-24 h-24 bg-nonai/10 rounded-full blur-3xl -mr-12 -mb-12 animate-pulse" style="animation-delay: 1s;"></div>
+     </section>
+    
+    <!-- 主要内容区域 -->
+    <main class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- 左侧：AI组数据及本组通过人员 -->
+      <section class="bg-dark/60 backdrop-blur-md rounded-2xl p-5 border border-ai/20 relative overflow-hidden group hover:border-ai/50 transition-all duration-300">
+        <div class="absolute top-0 right-0 w-32 h-32 bg-ai/5 rounded-full -mr-16 -mt-16 group-hover:bg-ai/10 transition-all duration-500"></div>
+        
+        <div class="flex items-center justify-between mb-5 relative z-10">
+          <h2 class="text-xl md:text-2xl font-bold text-ai flex items-center">
+            <i class="fa fa-robot mr-2"></i>AI组
+          </h2>
+          <span class="bg-ai/10 text-ai px-3 py-1 rounded-full text-sm font-medium">
+            本组总人数: <span id="ai-group-count">40</span>
+          </span>
+        </div>
+        
+        <!-- 构建数据展示 -->
+        <div class="mb-6 relative z-10">
+          <div class="flex justify-between items-end mb-2">
+            <div>
+              <p class="text-gray-400 text-sm">AI组通过率</p>
+              <p class="text-3xl md:text-4xl font-bold text-ai text-shadow" id="ai-pass-rate">78.4%</p>
+            </div>
+          </div>
+          
+          <!-- 趋势图表 -->
+          <div class="h-48 md:h-56 mt-4">
+            <canvas id="aiChart"></canvas>
+          </div>
+        </div>
+        
+        <!-- 构建统计 -->
+        <div class="relative z-10 grid grid-cols-2 gap-4 mb-6">
+          <div class="bg-dark/60 p-3 rounded-xl border border-ai/10 col-span-2">
+            <h3 class="text-xs text-gray-400 mb-1">平均通过时间</h3>
+            <p class="text-xl font-semibold text-ai" id="ai-average-time">加载中...</p>
+          </div>
+        </div>
+        
+        <!-- AI组通过人员列表 -->
+        <div class="relative z-10">
+          <h3 class="text-lg font-semibold mb-3 text-ai flex items-center">
+            <i class="fa fa-check-circle mr-2"></i>AI组通过人员
+          </h3>
+          
+          <!-- 表头 -->
+          <div class="grid grid-cols-12 gap-2 mb-2 text-xs text-gray-400 font-medium">
+            <div class="col-span-2">排名</div>
+            <div class="col-span-3">姓名</div>
+            <div class="col-span-3">所属小组</div>
+            <div class="col-span-4">提交时间</div>
+          </div>
+          
+          <!-- 列表内容 -->
+          <div id="ai-group-rankings" class="space-y-2 max-h-[250px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-ai/20 scrollbar-track-transparent">
+            <!-- 动态生成AI组通过人员 -->
+          </div>
+        </div>
+      </section>
+      
+      <!-- 中间：综合提交达人TOP3 + 实时构建动态 -->
+      <section class="flex flex-col gap-6">
+        <!-- 综合提交达人TOP3 -->
+        <div class="bg-dark/60 backdrop-blur-md rounded-2xl p-5 border border-primary/20 relative overflow-hidden group hover:border-primary/50 transition-all duration-300">
+          <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gold via-silver to-bronze"></div>
+          
+          <h2 class="text-xl md:text-2xl font-bold mb-4 relative z-10 flex items-center justify-center">
+            <i class="fa fa-trophy text-gold mr-2 pulse-slow"></i>实时提交达人 TOP 3
+          </h2>
+          
+          <!-- 排行榜内容区域 -->
+          <div class="space-y-4">
+            <!-- 冠军 -->
+            <div id="top1" class="rank-item-hover grid grid-cols-12 gap-2 items-center p-3 bg-gradient-to-r from-gold/10 to-transparent rounded-xl border border-gold/30">
+              <div class="col-span-2 flex justify-center">
+                <div class="w-8 h-8 rounded-full bg-gold text-dark font-bold flex items-center justify-center relative">
+                  1
+                  <i class="fa fa-crown absolute -top-2 -right-1 text-xs text-gold"></i>
+                </div>
+              </div>
+              <div class="col-span-3 font-bold">张小明</div>
+              <div class="col-span-3">
+                <span class="bg-ai/20 text-ai px-2 py-0.5 rounded-full text-xs">AI组</span>
+              </div>
+              <div class="col-span-4 font-semibold text-gold">58秒</div>
+            </div>
+            
+            <!-- 亚军 -->
+            <div id="top2" class="rank-item-hover grid grid-cols-12 gap-2 items-center p-3 bg-gradient-to-r from-silver/10 to-transparent rounded-xl border border-silver/30">
+              <div class="col-span-2 flex justify-center">
+                <div class="w-8 h-8 rounded-full bg-silver text-dark font-bold flex items-center justify-center">
+                  2
+                </div>
+              </div>
+              <div class="col-span-3 font-bold">陈静</div>
+              <div class="col-span-3">
+                <span class="bg-nonai/20 text-nonai px-2 py-0.5 rounded-full text-xs">非AI组</span>
+              </div>
+              <div class="col-span-4 font-semibold text-silver">1分42秒</div>
+            </div>
+            
+            <!-- 季军 -->
+            <div id="top3" class="rank-item-hover grid grid-cols-12 gap-2 items-center p-3 bg-gradient-to-r from-bronze/10 to-transparent rounded-xl border border-bronze/30">
+              <div class="col-span-2 flex justify-center">
+                <div class="w-8 h-8 rounded-full bg-bronze text-dark font-bold flex items-center justify-center">
+                  3
+                </div>
+              </div>
+              <div class="col-span-3 font-bold">李华</div>
+              <div class="col-span-3">
+                <span class="bg-ai/20 text-ai px-2 py-0.5 rounded-full text-xs">AI组</span>
+              </div>
+              <div class="col-span-4 font-semibold text-bronze">1分55秒</div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 实时构建动态 -->
+        <div class="bg-dark/60 backdrop-blur-md rounded-2xl p-5 border border-primary/20 relative overflow-hidden group hover:border-primary/50 transition-all duration-300 flex-1 min-h-[400px]">
+          <div class="absolute inset-0 code-flow opacity-30"></div>
+          
+          <h2 class="text-xl md:text-2xl font-bold mb-5 relative z-10 flex items-center">
+            <i class="fa fa-refresh text-primary mr-2 pulse-slow"></i>实时提交动态
+          </h2>
+          
+          <!-- 动态滚动区域 -->
+          <div class="h-[calc(100%-3rem)] relative overflow-hidden">
+            <div class="scroll-container absolute inset-0">
+              <div id="submission-feed" class="space-y-2 p-1">
+                <!-- 动态内容会通过JS添加 -->
+              </div>
+            </div>
+          </div>
+          
+          <!-- 装饰遮罩 -->
+          <div class="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-dark/80 to-transparent pointer-events-none"></div>
+          <div class="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-dark/80 to-transparent pointer-events-none"></div>
+        </div>
+      </section>
+      
+      <!-- 右侧：非AI组数据及本组通过人员 -->
+      <section class="bg-dark/60 backdrop-blur-md rounded-2xl p-5 border border-nonai/20 relative overflow-hidden group hover:border-nonai/50 transition-all duration-300">
+        <div class="absolute top-0 right-0 w-32 h-32 bg-nonai/5 rounded-full -mr-16 -mt-16 group-hover:bg-nonai/10 transition-all duration-500"></div>
+        
+        <div class="flex items-center justify-between mb-5 relative z-10">
+          <h2 class="text-xl md:text-2xl font-bold text-nonai flex items-center">
+            <i class="fa fa-user mr-2"></i>非AI组
+          </h2>
+          <span class="bg-nonai/10 text-nonai px-3 py-1 rounded-full text-sm font-medium">
+            本组总人数: <span id="nonai-group-count">20</span>
+          </span>
+        </div>
+        
+        <!-- 构建数据展示 -->
+        <div class="mb-6 relative z-10">
+          <div class="flex justify-between items-end mb-2">
+            <div>
+              <p class="text-gray-400 text-sm">非AI组通过率</p>
+              <p class="text-3xl md:text-4xl font-bold text-nonai text-shadow" id="nonai-pass-rate">62.8%</p>
+            </div>
+          </div>
+          
+          <!-- 趋势图表 -->
+          <div class="h-48 md:h-56 mt-4">
+            <canvas id="nonAiChart"></canvas>
+          </div>
+        </div>
+        
+        <!-- 构建统计 -->
+        <div class="relative z-10 grid grid-cols-2 gap-4 mb-6">
+          <div class="bg-dark/60 p-3 rounded-xl border border-nonai/10 col-span-2">
+            <h3 class="text-xs text-gray-400 mb-1">平均通过时间</h3>
+            <p class="text-xl font-semibold text-nonai" id="nonai-average-time">加载中...</p>
+          </div>
+        </div>
+        
+        <!-- 非AI组通过人员列表 -->
+        <div class="relative z-10">
+          <h3 class="text-lg font-semibold mb-3 text-nonai flex items-center">
+            <i class="fa fa-check-circle mr-2"></i>非AI组通过人员
+          </h3>
+          
+          <!-- 表头 -->
+          <div class="grid grid-cols-12 gap-2 mb-2 text-xs text-gray-400 font-medium">
+            <div class="col-span-2">排名</div>
+            <div class="col-span-3">姓名</div>
+            <div class="col-span-3">所属小组</div>
+            <div class="col-span-4">提交时间</div>
+          </div>
+          
+          <!-- 列表内容 -->
+          <div id="nonai-group-rankings" class="space-y-2 max-h-[250px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-nonai/20 scrollbar-track-transparent">
+            <!-- 动态生成非AI组通过人员 -->
+          </div>
+        </div>
+      </section>
+    </main>
+    
+    <!-- 底部信息 -->
+    <footer class="mt-8 text-center text-gray-500 text-sm">
+      <p>日新月异，AI的力量</p>
+    </footer>
+  </div>
+
+  <script>
+     // 确保DOM加载完成后执行
+     document.addEventListener('DOMContentLoaded', function() {
+       // 创建二进制字符动画背景
+       createBinaryCharactersBackground();
+       
+       // 初始化语音合成（确保语音列表加载）
+       if ('speechSynthesis' in window) {
+         window.speechSynthesis.getVoices();
+         // 监听语音列表变化
+         window.speechSynthesis.onvoiceschanged = function() {
+           window.speechSynthesis.getVoices();
+         };
+       }
+      
+      // 存储用户首次成功提交的时间（用于计算最快提交达人）
+      const userFirstSuccess = {};
+      // 存储当前TOP3用户
+      let currentTop3 = ['张小明', '陈静', '李华'];
+      // 比赛是否已结束的标志 - 使用全局变量
+      window.competitionEnded = false;
+      
+      // 倒计时功能（20分钟）
+      let totalSeconds = 20 * 60; // 20分钟
+      const countdownEl = document.getElementById('countdown');
+      const timerCircle = document.getElementById('timer-circle');
+      const totalCircleLength = 283; // 圆的周长
+      
+      // 创建音频上下文用于滴答声
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      const audioContext = new AudioContext();
+      
+      // 播放滴答声音函数
+      function playTickSound() {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        // 设置声音参数
+        oscillator.type = 'sine';
+        oscillator.frequency.value = 800; // 频率800Hz，清脆的滴答声
+        
+        // 设置音量渐变（快速衰减）
+        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime); // 初始音量较小
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.05);
+        
+        // 播放声音
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.05); // 持续50毫秒
+      }
+      
+      function updateCountdown() {
+        if (totalSeconds <= 0 || window.competitionEnded) {
+          countdownEl.textContent = "00:00";
+          countdownEl.classList.add('text-red-500');
+          countdownEl.classList.add('animate-pulse');
+          
+          // 如果时间到了自动结束比赛
+          if (!window.competitionEnded) {
+            endCompetition();
+          }
+          return;
+        }
+        
+        totalSeconds--;
+        
+        // 播放滴答声
+        try {
+          playTickSound();
+        } catch (e) {
+          console.log('Audio playback failed:', e);
+        }
+        
+        // 更新显示
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        countdownEl.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        
+        // 更新进度环
+        const progress = totalSeconds / (20 * 60);
+        const offset = totalCircleLength - (progress * totalCircleLength);
+        timerCircle.style.strokeDashoffset = offset;
+        
+        // 最后5分钟变红
+        if (totalSeconds < 5 * 60) {
+          timerCircle.setAttribute('stroke', '#FF6B9B');
+          if (totalSeconds % 2 === 0) {
+            countdownEl.classList.add('text-red-500');
+          } else {
+            countdownEl.classList.remove('text-red-500');
+          }
+        }
+      }
+      
+      const countdownInterval = setInterval(updateCountdown, 1000);
+      updateCountdown();
+      
+      // 从后端获取用户数据
+      let users = [];
+      let realUserData = {};
+      
+      // 初始化用户数据
+      async function initUserData() {
+        try {
+          const response = await fetch('/api/user-info');
+          if (!response.ok) {
+            console.warn('无法获取用户数据，使用模拟数据');
+            initDemoUsers();
+            return;
+          }
+          
+          const result = await response.json();
+          if (result.code === 200 && result.data && result.data.length > 0) {
+            // 使用真实用户数据
+            users = result.data.map(u => u.userName);
+            
+            // 为每个用户初始化提交统计
+            result.data.forEach(userData => {
+              // 判断是否为AI组
+              const isAiGroup = userData.groupType === 'AI组';
+              
+              userFirstSuccess[userData.userName] = {
+                time: null,
+                attempts: 0,
+                successAttempts: 0,
+                isAiGroup: isAiGroup,
+                subGroup: userData.subGroup,
+                finishTime: null,
+                userId: userData.id
+              };
+              
+              realUserData[userData.userName] = userData;
+              realUserData[userData.id] = userData; // 同时按ID存储
+            });
+            
+            console.log('用户数据加载完成，realUserData keys:', Object.keys(realUserData));
+            
+            // 计算并显示各组人数
+            const aiGroupCount = result.data.filter(u => u.groupType === 'AI组').length;
+            const nonAiGroupCount = result.data.filter(u => u.groupType === '非AI组').length;
+            const totalCount = result.data.length;
+            
+            document.getElementById('ai-group-count').textContent = aiGroupCount;
+            document.getElementById('nonai-group-count').textContent = nonAiGroupCount;
+            
+            // 更新总人数显示
+            const totalParticipantsElement = document.querySelector('.text-white.font-semibold.text-lg.md\\:text-xl');
+            if (totalParticipantsElement && totalParticipantsElement.textContent === '60') {
+              totalParticipantsElement.textContent = totalCount;
+            }
+            
+            console.log(`已加载 ${users.length} 个真实用户 (AI组:${aiGroupCount}, 非AI组:${nonAiGroupCount}, 总计:${totalCount})`);
+          } else {
+            console.warn('用户数据为空，使用模拟数据');
+            initDemoUsers();
+          }
+        } catch (error) {
+          console.error('获取用户数据失败:', error);
+          initDemoUsers();
+        }
+      }
+      
+      // 初始化模拟用户数据（后备方案）
+      function initDemoUsers() {
+        users = [
+          '张小明', '李华', '王强', '陈静', '赵伟', '刘芳', '周杰', '吴敏', '郑亮', '孙颖',
+          '马涛', '朱琳', '胡佳', '林达', '郭阳', '何丽', '高鹏', '罗娜', '梁超', '宋佳',
+          '黄勇', '杨婷', '吴迪', '郑敏', '徐亮', '马琳', '曾强', '刘佳', '唐辉', '陈明',
+          '张强', '王丽', '刘伟', '赵敏', '孙磊', '周敏', '吴芳', '郑华', '马强', '朱颖',
+          '胡亮', '林芳', '郭伟', '何敏', '高颖', '罗强', '梁敏', '宋伟', '黄芳', '杨强',
+          '吴颖', '郑强', '徐敏', '马华', '曾芳', '刘颖', '唐强', '陈亮', '张敏', '李芳',
+          '王颖', '陈强', '赵芳', '刘亮', '周强', '吴华', '郑颖', '孙强', '马敏', '朱强',
+          '胡敏', '林强', '郭芳', '何强', '高华', '罗敏', '梁芳', '宋敏', '黄强', '杨颖',
+          '吴强', '郑敏', '徐强', '马亮', '曾华', '刘华', '唐敏', '陈敏', '张明', '李亮',
+          '王华', '陈颖', '赵强', '刘敏', '周芳', '吴亮', '郑华', '孙颖', '马芳', '朱亮',
+          '胡华', '林敏', '郭亮', '何华', '高敏', '罗华', '梁亮', '宋华', '黄敏', '杨亮',
+          '吴华', '郑亮', '徐华', '马颖', '曾亮', '刘亮', '唐华', '陈华', '张颖', '李敏'
+        ];
+        
+        users.forEach((user, index) => {
+          // AI组40人，非AI组20人
+          const isAiGroup = index < 40;
+          let subGroup = '';
+          if (isAiGroup) {
+            const groupNum = (index % 4) + 1;
+            subGroup = `AI-${groupNum}小组`;
+          } else {
+            const nonAiIndex = index - 40;
+            const groupNum = (nonAiIndex % 2) + 1;
+            subGroup = `非AI-${groupNum}小组`;
+          }
+          
+          userFirstSuccess[user] = {
+            time: null,
+            attempts: 0,
+            successAttempts: 0,
+            isAiGroup: isAiGroup,
+            subGroup: subGroup,
+            finishTime: null
+          };
+        });
+        
+        const aiGroupCount = Object.values(userFirstSuccess).filter(data => data.isAiGroup).length;
+        const nonAiGroupCount = users.length - aiGroupCount;
+        document.getElementById('ai-group-count').textContent = aiGroupCount;
+        document.getElementById('nonai-group-count').textContent = nonAiGroupCount;
+        
+        // 用户数据初始化完成后，不再添加假数据
+        // 注释掉假数据生成，使用真实的提交数据
+        // for (let i = 0; i < 25; i++) {
+        //   addBuildRecord(generateRandomBuild());
+        // }
+      }
+      
+      // 立即初始化用户数据
+      initUserData().then(() => {
+        // 用户数据加载完成后，初始化其他功能
+        // 自动开始比赛
+        startCompetitionAutomatically();
+        
+        // TOP3数据将从页面数据中获取，不需要调用接口
+        
+        // 初始化比赛统计数据
+        initCompetitionStats();
+        
+        // 初始化全部通过人员列表
+        initFullPassUsers();
+        
+        // 初始化实时提交动态
+        loadRecentSubmissions();
+        
+        // 开始实时数据更新
+        updateAllRealTimeData();
+      });
+      
+      // TOP3数据现在从页面数据中获取，不再需要调用接口
+      
+      // 更新TOP3显示
+      function updateTop3Display(top3Data) {
+        // 更新第一名
+        if (top3Data[0]) {
+          const top1 = top3Data[0];
+          document.querySelector('#top1 .col-span-3.font-bold').textContent = top1.username;
+          const top1GroupEl = document.querySelector('#top1 .col-span-3 span');
+          if (top1GroupEl) {
+            top1GroupEl.className = top1.groupType === 'AI组'
+              ? 'bg-ai/20 text-ai px-2 py-0.5 rounded-full text-xs' 
+              : 'bg-nonai/20 text-nonai px-2 py-0.5 rounded-full text-xs';
+            top1GroupEl.textContent = top1.subGroup ? top1.subGroup : (top1.groupType === 'AI组' ? 'AI组' : '非AI组');
+          }
+          // 显示提交时刻
+          const submitTime = new Date(top1.submitTime);
+          const timeString = submitTime.toLocaleTimeString('zh-CN', { 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            second: '2-digit' 
+          });
+          document.querySelector('#top1 .col-span-4.font-semibold.text-gold').textContent = timeString;
+        }
+        
+        // 更新第二名
+        if (top3Data[1]) {
+          const top2 = top3Data[1];
+          document.querySelector('#top2 .col-span-3.font-bold').textContent = top2.username;
+          const top2GroupEl = document.querySelector('#top2 .col-span-3 span');
+          if (top2GroupEl) {
+            top2GroupEl.className = top2.groupType === 'AI组'
+              ? 'bg-ai/20 text-ai px-2 py-0.5 rounded-full text-xs' 
+              : 'bg-nonai/20 text-nonai px-2 py-0.5 rounded-full text-xs';
+            top2GroupEl.textContent = top2.subGroup ? top2.subGroup : (top2.groupType === 'AI组' ? 'AI组' : '非AI组');
+          }
+          // 显示提交时刻
+          const submitTime = new Date(top2.submitTime);
+          const timeString = submitTime.toLocaleTimeString('zh-CN', { 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            second: '2-digit' 
+          });
+          document.querySelector('#top2 .col-span-4.font-semibold.text-silver').textContent = timeString;
+        }
+        
+        // 更新第三名
+        if (top3Data[2]) {
+          const top3 = top3Data[2];
+          document.querySelector('#top3 .col-span-3.font-bold').textContent = top3.username;
+          const top3GroupEl = document.querySelector('#top3 .col-span-3 span');
+          if (top3GroupEl) {
+            top3GroupEl.className = top3.groupType === 'AI组'
+              ? 'bg-ai/20 text-ai px-2 py-0.5 rounded-full text-xs' 
+              : 'bg-nonai/20 text-nonai px-2 py-0.5 rounded-full text-xs';
+            top3GroupEl.textContent = top3.subGroup ? top3.subGroup : (top3.groupType === 'AI组' ? 'AI组' : '非AI组');
+          }
+          // 显示提交时刻
+          const submitTime = new Date(top3.submitTime);
+          const timeString = submitTime.toLocaleTimeString('zh-CN', { 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            second: '2-digit' 
+          });
+          document.querySelector('#top3 .col-span-4.font-semibold.text-bronze').textContent = timeString;
+        }
+      }
+      
+      // 自动开始比赛函数
+      async function startCompetitionAutomatically() {
+        try {
+          const response = await fetch('/api/competition/start', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            const result = await response.json();
+            console.log('比赛开始时间已更新:', result.data);
+          } else {
+            console.warn('无法自动开始比赛，使用默认时间');
+          }
+        } catch (error) {
+          console.warn('自动开始比赛失败:', error);
+        }
+      }
+      
+      // 构建ID生成函数
+      function generateBuildId() {
+        const prefix = Math.random() > 0.5 ? 'BUILD-' : 'CI-';
+        const numbers = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        return prefix + numbers;
+      }
+      
+      // 构建时间生成函数（成功的构建通常更快）
+      function generateBuildTime(isSuccess) {
+        if (isSuccess) {
+          const min = 30;  // 成功构建最短30秒
+          const max = 300; // 成功构建最长5分钟
+          return Math.floor(Math.random() * (max - min + 1)) + min;
+        } else {
+          const min = 60;  // 失败构建最短1分钟
+          const max = 300; // 失败构建最长5分钟
+          return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+      }
+      
+      function generateRandomBuild() {
+        // 增加TOP3用户提交的概率
+        let user;
+        if (Math.random() < 0.3) { // 30%概率是TOP3用户
+          const randomIndex = Math.floor(Math.random() * currentTop3.length);
+          user = currentTop3[randomIndex];
+        } else {
+          const userIndex = Math.floor(Math.random() * users.length);
+          user = users[userIndex];
+        }
+        
+        // 检查用户数据是否已初始化
+        if (!userFirstSuccess[user]) {
+          console.warn(`用户 ${user} 的数据未初始化，跳过此次生成`);
+          return;
+        }
+        
+        const isAiGroup = userFirstSuccess[user].isAiGroup;
+        
+        // 增加该用户的总提交次数
+        userFirstSuccess[user].attempts++;
+        
+        // 成功率随提交次数增加而提高
+        const baseSuccessRate = 0.3;
+        const attemptBonus = Math.min(0.5, userFirstSuccess[user].attempts * 0.05);
+        const isSuccess = Math.random() < (baseSuccessRate + attemptBonus);
+        
+        if (isSuccess) {
+          userFirstSuccess[user].successAttempts++;
+          // 记录首次成功的时间
+          if (userFirstSuccess[user].time === null) {
+            const currentTime = 20 * 60 - totalSeconds; // 从比赛开始到现在的秒数
+            userFirstSuccess[user].time = currentTime;
+            
+            // 记录完成时间
+            const now = new Date();
+            userFirstSuccess[user].finishTime = now.toLocaleTimeString('zh-CN', {
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit'
+            });
+          }
+        }
+        
+        const buildTime = generateBuildTime(isSuccess);
+        const time = new Date();
+        const timeString = time.toLocaleTimeString('zh-CN', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
+        
+        // 计算成功率（成功次数 / 总提交次数）
+        const successRate = userFirstSuccess[user].attempts > 0 
+          ? (userFirstSuccess[user].successAttempts / userFirstSuccess[user].attempts * 100).toFixed(1)
+          : '0.0';
+        
+        return {
+          user,
+          buildId: generateBuildId(),
+          isSuccess,
+          buildTime,
+          timeString,
+          isAiGroup,
+          competitionTime: 20 * 60 - totalSeconds, // 比赛已进行的秒数
+          successRate: successRate // 添加成功率
+        };
+      }
+      
+      // 初始化构建记录数据
+      const submissionFeed = document.getElementById('submission-feed');
+      
+      // 从后端获取最近的提交记录
+      async function loadRecentSubmissions() {
+        try {
+          const response = await fetch('/api/submission/recent?limit=10');
+          if (response.ok) {
+            const result = await response.json();
+            if (result.code === 200 && result.data) {
+              // 清空现有内容
+              submissionFeed.innerHTML = '';
+              // 添加真实的提交记录
+              result.data.forEach(submission => {
+                addRealSubmissionRecord(submission);
+              });
+            }
+          }
+        } catch (error) {
+          console.error('获取最近提交记录失败:', error);
+        }
+      }
+      
+      function addRealSubmissionRecord(submission, prepend = false) {
+        if (window.competitionEnded) return; // 比赛结束后不再添加记录
+        
+        // 获取用户信息
+        const userInfo = getUserInfoById(submission.userId);
+        const isAiGroup = userInfo && userInfo.groupType === 'AI组';
+        
+        const buildEl = document.createElement('div');
+        buildEl.className = `bg-dark/50 p-2.5 rounded-lg border ${isAiGroup ? 'border-ai/20' : 'border-nonai/20'} flex items-center gap-2 transform transition-all duration-500 hover:translate-x-1`;
+        
+        const groupBadge = isAiGroup ? 
+          '<span class="w-2 h-2 rounded-full bg-ai"></span>' : 
+          '<span class="w-2 h-2 rounded-full bg-nonai"></span>';
+        
+        // 判断是否全部通过（20个用例）
+        const isFullSuccess = submission.passed === 20;
+        const successRate = submission.passed ? (submission.passed / 20 * 100).toFixed(1) : '0.0';
+        
+        const resultBadge = isFullSuccess ? 
+          `<span class="ml-auto flex items-center gap-1.5 px-2 py-0.5 rounded text-xs"><span class="text-gray-400">${successRate}%</span><span class="bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">成功</span></span>` : 
+          `<span class="ml-auto flex items-center gap-1.5 px-2 py-0.5 rounded text-xs"><span class="text-gray-400">${successRate}%</span><span class="bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded">失败</span></span>`;
+        
+        // 格式化完成时间（秒转分秒）
+        const minutes = Math.floor((submission.completionTime || 0) / 60);
+        const seconds = (submission.completionTime || 0) % 60;
+        const formattedTime = minutes > 0 ? `${minutes}分${seconds}秒` : `${seconds}秒`;
+        
+        // 格式化提交时间
+        const submitTime = submission.submitTime ? new Date(submission.submitTime).toLocaleTimeString('zh-CN', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        }) : '--';
+        
+        buildEl.innerHTML = `
+          ${groupBadge}
+          <span class="text-sm truncate max-w-[80px]">${userInfo ? userInfo.userName : '未知用户'}</span>
+          <span class="text-gray-400 text-sm flex-1 truncate">提交 (${formattedTime})</span>
+          <span class="text-gray-500 text-xs whitespace-nowrap">${submitTime}</span>
+          ${resultBadge}
+        `;
+        
+        if (prepend) {
+          submissionFeed.insertBefore(buildEl, submissionFeed.firstChild);
+          // 添加新元素时的动画效果
+          buildEl.classList.add('scale-95', 'opacity-0');
+          setTimeout(() => {
+            buildEl.classList.remove('scale-95', 'opacity-0');
+          }, 10);
+        } else {
+          submissionFeed.appendChild(buildEl);
+        }
+        
+         // 保持列表长度
+         if (submissionFeed.children.length > 50) {
+           submissionFeed.removeChild(submissionFeed.lastChild);
+         }
+         
+         // 只有100%成功率才触发庆祝和更新排行榜
+         if (isFullSuccess) {
+           // 所有用户成功提交都触发庆祝特效
+           triggerCelebration(userInfo ? userInfo.userName : '未知用户');
+           updateRankings();
+         }
+       }
+       
+       // 根据用户ID获取用户信息的辅助函数
+       function getUserInfoById(userId) {
+         // 从realUserData中查找用户信息
+         const userData = realUserData[userId];
+         if (userData) {
+           return {
+             userName: userData.userName,
+             groupType: userData.groupType,
+             subGroup: userData.subGroup,
+             id: userData.id
+           };
+         }
+         console.warn(`未找到用户ID ${userId} 的信息，realUserData keys:`, Object.keys(realUserData));
+         return null;
+       }
+      
+      function addBuildRecord(build, prepend = false) {
+        if (window.competitionEnded) return; // 比赛结束后不再添加记录
+        
+        const buildEl = document.createElement('div');
+        buildEl.className = `bg-dark/50 p-2.5 rounded-lg border ${build.isAiGroup ? 'border-ai/20' : 'border-nonai/20'} flex items-center gap-2 transform transition-all duration-500 hover:translate-x-1`;
+        
+        const groupBadge = build.isAiGroup ? 
+          '<span class="w-2 h-2 rounded-full bg-ai"></span>' : 
+          '<span class="w-2 h-2 rounded-full bg-nonai"></span>';
+        
+        // 判断是否100%成功
+        const successRate = parseFloat(build.successRate);
+        const isFullSuccess = successRate === 100;
+        
+        const resultBadge = isFullSuccess ? 
+          `<span class="ml-auto flex items-center gap-1.5 px-2 py-0.5 rounded text-xs"><span class="text-gray-400">${build.successRate}%</span><span class="bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">成功</span></span>` : 
+          `<span class="ml-auto flex items-center gap-1.5 px-2 py-0.5 rounded text-xs"><span class="text-gray-400">${build.successRate}%</span><span class="bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded">失败</span></span>`;
+        
+        // 格式化构建时间（秒转分秒）
+        const minutes = Math.floor(build.buildTime / 60);
+        const seconds = build.buildTime % 60;
+        const formattedTime = minutes > 0 ? `${minutes}分${seconds}秒` : `${seconds}秒`;
+        
+        buildEl.innerHTML = `
+          ${groupBadge}
+          <span class="text-sm truncate max-w-[80px]">${build.user}</span>
+          <span class="text-gray-400 text-sm flex-1 truncate">提交 (${formattedTime})</span>
+          <span class="text-gray-500 text-xs whitespace-nowrap">${build.timeString}</span>
+          ${resultBadge}
+        `;
+        
+        if (prepend) {
+          submissionFeed.insertBefore(buildEl, submissionFeed.firstChild);
+          // 添加新元素时的动画效果
+          buildEl.classList.add('scale-95', 'opacity-0');
+          setTimeout(() => {
+            buildEl.classList.remove('scale-95', 'opacity-0');
+          }, 10);
+        } else {
+          submissionFeed.appendChild(buildEl);
+        }
+        
+         // 保持列表长度
+         if (submissionFeed.children.length > 50) {
+           submissionFeed.removeChild(submissionFeed.lastChild);
+         }
+         
+         // 只有100%成功率才触发庆祝和更新排行榜
+         if (isFullSuccess) {
+           // 所有用户成功提交都触发庆祝特效
+           triggerCelebration(build.user);
+           updateRankings();
+         }
+       }
+      
+       // 语音播报函数
+       function speakText(text) {
+         // 检查浏览器是否支持语音合成
+         if ('speechSynthesis' in window) {
+           // 取消之前的语音播报
+           window.speechSynthesis.cancel();
+           
+           const utterance = new SpeechSynthesisUtterance(text);
+           utterance.lang = 'zh-CN'; // 设置为中文
+           utterance.rate = 1.3; // 语速较快（机器人风格）
+           utterance.pitch = 0.8; // 音调较低（机器人低沉音）
+           utterance.volume = 0.9; // 音量稍大
+           
+           // 尝试获取可用的语音列表，选择机器人类型的声音
+           const voices = window.speechSynthesis.getVoices();
+           
+           // 优先选择包含 "Microsoft" 或带有机器人特征的语音
+           const robotVoice = voices.find(voice => 
+             voice.lang.includes('zh') && 
+             (voice.name.includes('Xiaoxiao') || 
+              voice.name.includes('Yunyang') ||
+              voice.name.includes('Male'))
+           );
+           
+           if (robotVoice) {
+             utterance.voice = robotVoice;
+           }
+           
+           window.speechSynthesis.speak(utterance);
+         }
+       }
+       
+       // 庆祝动画函数
+       function triggerCelebration(user) {
+         const celebrationContainer = document.getElementById('celebration');
+         const celebrationText = document.getElementById('celebration-text');
+         
+         // 设置庆祝文本
+         celebrationText.textContent = `${user} 提交成功！`;
+         
+         // 根据用户排名设置文本颜色和播报内容
+         let textColor = '';
+         let speechText = '';
+         if (currentTop3[0] === user) {
+           textColor = 'text-gold';
+           speechText = `恭喜${user}，提交成功！当前排名第一！`;
+         } else if (currentTop3[1] === user) {
+           textColor = 'text-silver';
+           speechText = `恭喜${user}，提交成功！当前排名第二！`;
+         } else if (currentTop3[2] === user) {
+           textColor = 'text-bronze';
+           speechText = `恭喜${user}，提交成功！当前排名第三！`;
+         } else {
+           speechText = `恭喜${user}，提交成功！`;
+         }
+         
+         // 语音播报
+         speakText(speechText);
+         
+         celebrationText.className = `celebration-text ${textColor}`;
+         
+         // 显示庆祝容器
+         celebrationContainer.classList.add('active');
+         
+         // 添加文字动画
+         celebrationText.style.animation = 'popIn 0.8s forwards';
+         
+         // 创建彩色纸屑
+         createConfetti(100);
+         
+         // 创建烟花效果
+         createFireworks(5);
+         
+         // 高亮对应的TOP3项
+         highlightTopItem(user);
+         
+         // 3秒后结束庆祝动画
+         setTimeout(() => {
+           // 淡出文字
+           celebrationText.style.animation = 'fadeOut 0.5s forwards';
+           
+           // 1秒后隐藏容器
+           setTimeout(() => {
+             celebrationContainer.classList.remove('active');
+             // 清除所有动画元素
+             while (celebrationContainer.children.length > 1) {
+               celebrationContainer.removeChild(celebrationContainer.lastChild);
+             }
+           }, 500);
+         }, 3000);
+       }
+      
+      // 创建彩色纸屑
+      function createConfetti(count) {
+        const celebrationContainer = document.getElementById('celebration');
+        const colors = ['#FFD700', '#C0C0C0', '#CD7F32', '#00F0FF', '#FF6B9B', '#165DFF', '#36D399'];
+        
+        for (let i = 0; i < count; i++) {
+          const confetti = document.createElement('div');
+          confetti.className = 'confetti';
+          
+          // 随机属性
+          const size = Math.random() * 10 + 5;
+          const color = colors[Math.floor(Math.random() * colors.length)];
+          const startX = Math.random() * window.innerWidth;
+          const duration = Math.random() * 3 + 2;
+          const rotation = Math.random() * 360;
+          const delay = Math.random() * 2;
+          
+          // 设置样式
+          confetti.style.width = `${size}px`;
+          confetti.style.height = `${size / 2}px`;
+          confetti.style.backgroundColor = color;
+          confetti.style.left = `${startX}px`;
+          confetti.style.top = `-${size}px`;
+          confetti.style.transform = `rotate(${rotation}deg)`;
+          confetti.style.animation = `confettiFall ${duration}s ease-in ${delay}s forwards`;
+          
+          celebrationContainer.appendChild(confetti);
+        }
+      }
+      
+      // 创建烟花效果
+      function createFireworks(count) {
+        const celebrationContainer = document.getElementById('celebration');
+        const colors = ['#FFD700', '#C0C0C0', '#CD7F32', '#00F0FF', '#FF6B9B', '#165DFF'];
+        
+        // 添加烟花动画样式
+        const style = document.createElement('style');
+        style.textContent = `
+          @keyframes confettiFall {
+            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(${window.innerHeight}px) rotate(720deg); opacity: 0; }
+          }
+          @keyframes fireworkExplode {
+            0% { transform: scale(0); opacity: 1; }
+            50% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(1.5); opacity: 0; }
+          }
+        `;
+        document.head.appendChild(style);
+        
+        for (let i = 0; i < count; i++) {
+          // 烟花容器
+          const firework = document.createElement('div');
+          firework.className = 'firework';
+          
+          // 随机属性
+          const size = Math.random() * 100 + 50;
+          const color = colors[Math.floor(Math.random() * colors.length)];
+          const posX = Math.random() * window.innerWidth;
+          const posY = Math.random() * window.innerHeight * 0.7;
+          const duration = Math.random() * 1.5 + 1;
+          const delay = Math.random() * 2;
+          
+          // 设置样式
+          firework.style.width = `${size}px`;
+          firework.style.height = `${size}px`;
+          firework.style.backgroundColor = color;
+          firework.style.left = `${posX}px`;
+          firework.style.top = `${posY}px`;
+          firework.style.boxShadow = `0 0 ${size/2}px ${size/4}px ${color}`;
+          firework.style.animation = `fireworkExplode ${duration}s ease-out ${delay}s forwards`;
+          
+          celebrationContainer.appendChild(firework);
+        }
+      }
+      
+      // 高亮对应的TOP3项
+      function highlightTopItem(user) {
+        let elementId = '';
+        if (currentTop3[0] === user) elementId = 'top1';
+        else if (currentTop3[1] === user) elementId = 'top2';
+        else if (currentTop3[2] === user) elementId = 'top3';
+        
+        if (elementId) {
+          const element = document.getElementById(elementId);
+          element.classList.add('flash-animation', 'glow');
+          
+          setTimeout(() => {
+            element.classList.remove('flash-animation', 'glow');
+          }, 3000);
+        }
+      }
+      
+      // 更新各组排行榜
+      function updateRankings() {
+        // 筛选出有成功提交的用户并分组
+        const successfulUsers = Object.entries(userFirstSuccess)
+          .filter(([_, data]) => data.time !== null)
+          .map(([user, data]) => ({
+            user,
+            time: data.time,
+            attempts: data.attempts,
+            isAiGroup: data.isAiGroup,
+            subGroup: data.subGroup,
+            finishTime: data.finishTime
+          }));
+          
+        // 按提交时间排序（时间越短排名越高）
+        const allRankedUsers = [...successfulUsers].sort((a, b) => a.time - b.time);
+        
+        // 更新当前TOP3用户
+        if (allRankedUsers.length >= 3) {
+          currentTop3 = [
+            allRankedUsers[0].user,
+            allRankedUsers[1].user,
+            allRankedUsers[2].user
+          ];
+        } else if (allRankedUsers.length === 2) {
+          currentTop3 = [
+            allRankedUsers[0].user,
+            allRankedUsers[1].user,
+            currentTop3[2] // 保持原第三名
+          ];
+        } else if (allRankedUsers.length === 1) {
+          currentTop3 = [
+            allRankedUsers[0].user,
+            currentTop3[1], // 保持原第二名
+            currentTop3[2]  // 保持原第三名
+          ];
+        }
+        
+        // 更新页面实时TOP3显示的小组信息
+        if (allRankedUsers.length >= 1) {
+          const top1 = allRankedUsers[0];
+          console.log('TOP1用户数据:', top1);
+          const top1GroupEl = document.querySelector('#top1 .col-span-3 span');
+          if (top1GroupEl) {
+            top1GroupEl.className = top1.isAiGroup
+              ? 'bg-ai/20 text-ai px-2 py-0.5 rounded-full text-xs' 
+              : 'bg-nonai/20 text-nonai px-2 py-0.5 rounded-full text-xs';
+            const groupText = top1.subGroup ? top1.subGroup : (top1.isAiGroup ? 'AI组' : '非AI组');
+            console.log('TOP1小组名称:', groupText);
+            top1GroupEl.textContent = groupText;
+          }
+        }
+        
+        if (allRankedUsers.length >= 2) {
+          const top2 = allRankedUsers[1];
+          console.log('TOP2用户数据:', top2);
+          const top2GroupEl = document.querySelector('#top2 .col-span-3 span');
+          if (top2GroupEl) {
+            top2GroupEl.className = top2.isAiGroup
+              ? 'bg-ai/20 text-ai px-2 py-0.5 rounded-full text-xs' 
+              : 'bg-nonai/20 text-nonai px-2 py-0.5 rounded-full text-xs';
+            const groupText = top2.subGroup ? top2.subGroup : (top2.isAiGroup ? 'AI组' : '非AI组');
+            console.log('TOP2小组名称:', groupText);
+            top2GroupEl.textContent = groupText;
+          }
+        }
+        
+        if (allRankedUsers.length >= 3) {
+          const top3 = allRankedUsers[2];
+          console.log('TOP3用户数据:', top3);
+          const top3GroupEl = document.querySelector('#top3 .col-span-3 span');
+          if (top3GroupEl) {
+            top3GroupEl.className = top3.isAiGroup
+              ? 'bg-ai/20 text-ai px-2 py-0.5 rounded-full text-xs' 
+              : 'bg-nonai/20 text-nonai px-2 py-0.5 rounded-full text-xs';
+            const groupText = top3.subGroup ? top3.subGroup : (top3.isAiGroup ? 'AI组' : '非AI组');
+            console.log('TOP3小组名称:', groupText);
+            top3GroupEl.textContent = groupText;
+          }
+        }
+        
+        // 按组筛选并排序
+        const aiUsers = successfulUsers
+          .filter(user => user.isAiGroup)
+          .sort((a, b) => a.time - b.time);
+          
+        const nonAiUsers = successfulUsers
+          .filter(user => !user.isAiGroup)
+          .sort((a, b) => a.time - b.time);
+          
+        // 更新各组排行榜UI - 注释掉，因为现在使用专门的updateFullPassUsersList函数
+        // updateGroupRankingUI('ai-group-rankings', aiUsers, 'ai');
+        // updateGroupRankingUI('nonai-group-rankings', nonAiUsers, 'nonai');
+      }
+      
+      // 更新组内排行榜UI
+      function updateGroupRankingUI(containerId, users, groupType) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+        
+        // 如果没有通过用户，显示提示信息
+        if (users.length === 0) {
+          container.innerHTML = `
+            <div class="text-center py-4 text-gray-500 text-sm">
+              暂无通过记录
+            </div>
+          `;
+          return;
+        }
+        
+        // 生成列表项
+        users.forEach((user, index) => {
+          const rank = index + 1;
+          
+          // 格式化通过时间
+          const minutes = Math.floor(user.time / 60);
+          const seconds = user.time % 60;
+          const timeString = minutes > 0 ? `${minutes}分${seconds}秒` : `${seconds}秒`;
+          
+          // 前三名使用特殊颜色
+          let rankColorClass = '';
+          if (rank === 1) rankColorClass = 'text-gold font-semibold';
+          else if (rank === 2) rankColorClass = 'text-silver font-semibold';
+          else if (rank === 3) rankColorClass = 'text-bronze font-semibold';
+          
+          const userEl = document.createElement('div');
+          userEl.className = `rank-item-hover grid grid-cols-12 gap-2 items-center p-2.5 bg-dark/40 rounded-xl border border-${groupType}/10 hover:border-${groupType}/30`;
+          
+          userEl.innerHTML = `
+            <div class="col-span-2 flex justify-center">
+              <div class="w-6 h-6 rounded-full bg-dark text-gray-300 font-medium flex items-center justify-center border border-gray-700 ${rankColorClass}">
+                ${rank}
+              </div>
+            </div>
+            <div class="col-span-3 ${rank <= 3 ? 'font-bold' : ''}">${user.user}</div>
+            <div class="col-span-3 ${rankColorClass}">${timeString}</div>
+            <div class="col-span-4 text-xs text-gray-400">${user.finishTime || '-'}</div>
+          `;
+          
+          container.appendChild(userEl);
+        });
+      }
+      
+      // 初始生成排行榜
+      updateRankings();
+      
+      // 更新总体通过率
+      function updateOverallPassRate() {
+        // 计算所有用户的最好通过用例数总和
+        let totalMaxPassedSum = 0;
+        Object.values(userFirstSuccess).forEach(data => {
+          if (data.time !== null) {
+            // 假设每个成功用户的最好通过用例数为20（全部通过）
+            totalMaxPassedSum += 20;
+          }
+        });
+        
+        const totalUsers = users.length;
+        
+        if (totalUsers > 0) {
+          // 总体通过率 = 所有成员最好通过的用例数总和 / (总人数 × 20) × 100%
+          const overallRate = ((totalMaxPassedSum / (totalUsers * 20)) * 100).toFixed(1);
+          document.getElementById('overall-pass-rate').textContent = `${overallRate}%`;
+        }
+      }
+      
+      // 从API更新比赛统计数据
+      async function updateCompetitionStatsFromAPI() {
+        try {
+          const response = await fetch('/api/competition/current-stats');
+          if (response.ok) {
+            const result = await response.json();
+            if (result.code === 200 && result.data) {
+              const stats = result.data;
+              
+        // 更新总体通过率
+              if (stats.overallPassRate !== undefined) {
+                document.getElementById('overall-pass-rate').textContent = `${stats.overallPassRate}%`;
+              }
+              
+              // 更新AI组数据
+              if (stats.aiTotalCount !== undefined) {
+                document.getElementById('ai-group-count').textContent = stats.aiTotalCount;
+              }
+              if (stats.aiPassRate !== undefined) {
+                document.getElementById('ai-pass-rate').textContent = `${stats.aiPassRate}%`;
+              }
+              if (stats.aiAverageTime !== undefined) {
+                document.getElementById('ai-average-time').textContent = stats.aiAverageTime;
+              }
+              
+              // 更新非AI组数据
+              if (stats.nonAiTotalCount !== undefined) {
+                document.getElementById('nonai-group-count').textContent = stats.nonAiTotalCount;
+              }
+              if (stats.nonAiPassRate !== undefined) {
+                document.getElementById('nonai-pass-rate').textContent = `${stats.nonAiPassRate}%`;
+              }
+              if (stats.nonAiAverageTime !== undefined) {
+                document.getElementById('nonai-average-time').textContent = stats.nonAiAverageTime;
+              }
+              
+              // 更新图表数据
+              if (stats.subGroupStats && stats.subGroupStats.length > 0) {
+                updateChartsWithRealData(stats.subGroupStats);
+              }
+              
+              console.log('比赛统计数据更新成功');
+            }
+          }
+        } catch (error) {
+          console.error('更新比赛统计数据失败:', error);
+        }
+      }
+      
+      // 从API更新通过人员列表
+      async function updateFullPassUsersFromAPI() {
+        try {
+          // 更新AI组通过人员
+          const aiResponse = await fetch('/api/submission/full-pass?groupType=AI组');
+          if (aiResponse.ok) {
+            const aiResult = await aiResponse.json();
+            if (aiResult.code === 200 && aiResult.data) {
+              updateFullPassUsersList('ai', aiResult.data);
+            }
+          }
+          
+          // 更新非AI组通过人员
+          const nonAiResponse = await fetch('/api/submission/full-pass?groupType=非AI组');
+          if (nonAiResponse.ok) {
+            const nonAiResult = await nonAiResponse.json();
+            if (nonAiResult.code === 200 && nonAiResult.data) {
+              updateFullPassUsersList('nonai', nonAiResult.data);
+            }
+          }
+          
+          console.log('通过人员列表更新成功');
+        } catch (error) {
+          console.error('更新通过人员列表失败:', error);
+        }
+      }
+      
+      // 从API更新TOP3数据
+      async function updateTop3FromAPI() {
+        try {
+          const response = await fetch('/api/submission/top3');
+          if (response.ok) {
+            const result = await response.json();
+            if (result.code === 200 && result.data) {
+              updateTop3Display(result.data);
+              console.log('TOP3数据更新成功');
+            }
+          }
+        } catch (error) {
+          console.error('更新TOP3数据失败:', error);
+        }
+      }
+      
+      // 统一的实时数据更新函数
+      async function updateAllRealTimeData() {
+        try {
+          console.log('开始实时数据更新...');
+          
+          // 1. 更新比赛统计数据（包括总体通过率、AI组和非AI组数据）
+          await updateCompetitionStatsFromAPI();
+          
+          // 2. 更新最近的提交记录
+          await loadRecentSubmissions();
+          
+          // 3. 更新通过人员列表
+          await updateFullPassUsersFromAPI();
+          
+          // 4. 更新TOP3数据
+          await updateTop3FromAPI();
+          
+          console.log('实时数据更新完成');
+        } catch (error) {
+          console.error('实时数据更新失败:', error);
+        }
+      }
+      
+      // 定时刷新所有实时数据
+      window.realTimeUpdateInterval = setInterval(() => {
+        if (!window.competitionEnded) {
+          updateAllRealTimeData();
+        }
+      }, 3000); // 每3秒刷新一次
+      
+      // 存储成功构建的时间总和（用于计算平均通过时间）
+      let aiSuccessTimeTotal = 37 * (2 * 60 + 18); // 初始数据计算
+      let nonaiSuccessTimeTotal = 22 * (3 * 60 + 5); // 初始数据计算
+      let aiSuccessCount = 37; // 初始AI组成功次数
+      let nonaiSuccessCount = 22; // 初始非AI组成功次数
+      
+      // 更新统计数据
+      function updateStats(newBuild) {
+        // 只在构建成功时才更新平均通过时间
+        if (newBuild.isSuccess) {
+          if (newBuild.isAiGroup) {
+            aiSuccessTimeTotal += newBuild.buildTime;
+            aiSuccessCount++;
+            
+            // 更新平均通过时间（仅计算成功的构建）
+            const avgSeconds = Math.floor(aiSuccessTimeTotal / aiSuccessCount);
+            const avgMin = Math.floor(avgSeconds / 60);
+            const avgSec = avgSeconds % 60;
+            const avgTimeStr = avgMin > 0 ? `${avgMin}分${avgSec}秒` : `${avgSec}秒`;
+            document.getElementById('ai-average-time').textContent = avgTimeStr;
+          } else {
+            nonaiSuccessTimeTotal += newBuild.buildTime;
+            nonaiSuccessCount++;
+            
+            // 更新平均通过时间（仅计算成功的构建）
+            const avgSeconds = Math.floor(nonaiSuccessTimeTotal / nonaiSuccessCount);
+            const avgMin = Math.floor(avgSeconds / 60);
+            const avgSec = avgSeconds % 60;
+            const avgTimeStr = avgMin > 0 ? `${avgMin}分${avgSec}秒` : `${avgSec}秒`;
+            document.getElementById('nonai-average-time').textContent = avgTimeStr;
+          }
+        }
+        
+        // 更新通过率显示
+        const aiSuccessUsers = Object.values(userFirstSuccess).filter(data => data.isAiGroup && data.time !== null).length;
+        const aiTotalUsers = Object.values(userFirstSuccess).filter(data => data.isAiGroup).length;
+        const aiPassRate = aiTotalUsers > 0 ? ((aiSuccessUsers / aiTotalUsers) * 100).toFixed(1) : '0.0';
+        document.getElementById('ai-pass-rate').textContent = `${aiPassRate}%`;
+        
+        const nonaiSuccessUsers = Object.values(userFirstSuccess).filter(data => !data.isAiGroup && data.time !== null).length;
+        const nonaiTotalUsers = Object.values(userFirstSuccess).filter(data => !data.isAiGroup).length;
+        const nonaiPassRate = nonaiTotalUsers > 0 ? ((nonaiSuccessUsers / nonaiTotalUsers) * 100).toFixed(1) : '0.0';
+        document.getElementById('nonai-pass-rate').textContent = `${nonaiPassRate}%`;
+        
+        // 更新对比进度条
+        updateVersusBar(parseFloat(aiPassRate), parseFloat(nonaiPassRate));
+      }
+      
+      // 更新对比进度条（拔河模式）
+      function updateVersusBar(aiRate, nonaiRate) {
+        // 更新数值显示
+        document.getElementById('vs-ai-rate').textContent = `${aiRate.toFixed(1)}%`;
+        document.getElementById('vs-nonai-rate').textContent = `${nonaiRate.toFixed(1)}%`;
+        
+        // 计算拔河比例（总和为100%）
+        const totalRate = aiRate + nonaiRate;
+        let aiPercentage, nonaiPercentage;
+        
+        if (totalRate > 0) {
+          // 按照通过率比例分配100%的空间
+          aiPercentage = (aiRate / totalRate) * 100;
+          nonaiPercentage = (nonaiRate / totalRate) * 100;
+        } else {
+          // 如果都是0，各占50%
+          aiPercentage = 50;
+          nonaiPercentage = 50;
+        }
+        
+        // 更新进度条宽度（拔河效果：AI从左边，非AI从右边）
+        document.getElementById('vs-ai-progress').style.width = `${aiPercentage}%`;
+        document.getElementById('vs-nonai-progress').style.width = `${nonaiPercentage}%`;
+        
+        // 更新中心标记位置
+        document.getElementById('vs-center-marker').style.left = `${aiPercentage}%`;
+        
+        // 计算并显示差值
+        const difference = Math.abs(aiRate - nonaiRate).toFixed(1);
+        const differenceEl = document.getElementById('vs-difference');
+        
+        if (aiRate > nonaiRate) {
+          differenceEl.innerHTML = `AI组领先 <span class="text-ai font-semibold">${difference}%</span>`;
+        } else if (nonaiRate > aiRate) {
+          differenceEl.innerHTML = `非AI组领先 <span class="text-nonai font-semibold">${difference}%</span>`;
+        } else {
+          differenceEl.innerHTML = `<span class="text-primary font-semibold">两组持平</span>`;
+        }
+      }
+      
+      // 初始化图表
+      function initCharts() {
+        // 检查Chart是否加载成功
+        if (typeof Chart === 'undefined') {
+          console.error('Chart.js未加载成功，重试中...');
+          setTimeout(initCharts, 1000);
+          return;
+        }
+        
+        console.log('Chart.js加载成功，开始初始化图表...');
+        
+        // AI组图表
+        const aiCtx = document.getElementById('aiChart').getContext('2d');
+        console.log('创建AI组图表...');
+        window.aiChart = new Chart(aiCtx, {
+          type: 'bar',
+          data: {
+            labels: ['AI-1小组', 'AI-2小组', 'AI-3小组', 'AI-4小组'],
+            datasets: [{
+              label: '通过率',
+              data: [75, 82, 78, 80],
+              backgroundColor: 'rgba(0, 240, 255, 0.6)',
+              borderColor: '#00F0FF',
+              borderWidth: 2,
+              barThickness: 40
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              },
+              tooltip: {
+                backgroundColor: 'rgba(15, 23, 42, 0.8)',
+                titleColor: '#fff',
+                bodyColor: '#ccc',
+                borderColor: 'rgba(0, 240, 255, 0.3)',
+                borderWidth: 1,
+                padding: 10,
+                displayColors: true,
+                callbacks: {
+                  label: function(context) {
+                    return context.dataset.label + ': ' + context.parsed.y + '%';
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                display: true,
+                grid: {
+                  display: true,
+                  color: 'rgba(148, 163, 184, 0.3)',
+                  drawBorder: true,
+                  borderColor: 'rgba(148, 163, 184, 0.6)',
+                  lineWidth: 1
+                },
+                ticks: {
+                  display: true,
+                  color: '#94a3b8',
+                  font: {
+                    size: 12,
+                    weight: 'bold'
+                  },
+                  padding: 8
+                },
+                title: {
+                  display: true,
+                  text: 'AI组',
+                  color: '#94a3b8',
+                  font: {
+                    size: 14,
+                    weight: 'bold'
+                  }
+                }
+              },
+              y: {
+                display: true,
+                grid: {
+                  display: true,
+                  color: 'rgba(148, 163, 184, 0.3)',
+                  drawBorder: true,
+                  borderColor: 'rgba(148, 163, 184, 0.6)',
+                  lineWidth: 1
+                },
+                ticks: {
+                  display: true,
+                  color: '#94a3b8',
+                  font: {
+                    size: 12,
+                    weight: 'bold'
+                  },
+                  callback: function(value) {
+                    return value + '%';
+                  },
+                  padding: 8
+                },
+                title: {
+                  display: true,
+                  text: '通过率',
+                  color: '#94a3b8',
+                  font: {
+                    size: 14,
+                    weight: 'bold'
+                  }
+                },
+                min: 0,
+                max: 100
+              }
+            },
+            animation: {
+              duration: 2000,
+              easing: 'easeOutQuart'
+            }
+          }
+        });
+        
+        // 非AI组图表
+        const nonAiCtx = document.getElementById('nonAiChart').getContext('2d');
+        console.log('创建非AI组图表...');
+        window.nonAiChart = new Chart(nonAiCtx, {
+          type: 'bar',
+          data: {
+            labels: ['非AI-1小组', '非AI-2小组'],
+            datasets: [{
+              label: '通过率',
+              data: [65, 72],
+              backgroundColor: 'rgba(255, 107, 155, 0.6)',
+              borderColor: '#FF6B9B',
+              borderWidth: 2,
+              barThickness: 50
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              },
+              tooltip: {
+                backgroundColor: 'rgba(15, 23, 42, 0.8)',
+                titleColor: '#fff',
+                bodyColor: '#ccc',
+                borderColor: 'rgba(255, 107, 155, 0.3)',
+                borderWidth: 1,
+                padding: 10,
+                displayColors: true,
+                callbacks: {
+                  label: function(context) {
+                    return context.dataset.label + ': ' + context.parsed.y + '%';
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                display: true,
+                grid: {
+                  display: true,
+                  color: 'rgba(148, 163, 184, 0.3)',
+                  drawBorder: true,
+                  borderColor: 'rgba(148, 163, 184, 0.6)',
+                  lineWidth: 1
+                },
+                ticks: {
+                  display: true,
+                  color: '#94a3b8',
+                  font: {
+                    size: 12,
+                    weight: 'bold'
+                  },
+                  padding: 8
+                },
+                title: {
+                  display: true,
+                  text: '非AI组',
+                  color: '#94a3b8',
+                  font: {
+                    size: 14,
+                    weight: 'bold'
+                  }
+                }
+              },
+              y: {
+                display: true,
+                grid: {
+                  display: true,
+                  color: 'rgba(148, 163, 184, 0.3)',
+                  drawBorder: true,
+                  borderColor: 'rgba(148, 163, 184, 0.6)',
+                  lineWidth: 1
+                },
+                ticks: {
+                  display: true,
+                  color: '#94a3b8',
+                  font: {
+                    size: 12,
+                    weight: 'bold'
+                  },
+                  callback: function(value) {
+                    return value + '%';
+                  },
+                  padding: 8
+                },
+                title: {
+                  display: true,
+                  text: '通过率',
+                  color: '#94a3b8',
+                  font: {
+                    size: 14,
+                    weight: 'bold'
+                  }
+                },
+                min: 0,
+                max: 100
+              }
+            },
+            animation: {
+              duration: 2000,
+              easing: 'easeOutQuart'
+            }
+          }
+        });
+        
+        console.log('所有图表初始化完成！');
+        console.log('AI图表实例:', window.aiChart);
+        console.log('非AI图表实例:', window.nonAiChart);
+        console.log('AI图表类型:', typeof window.aiChart);
+        console.log('非AI图表类型:', typeof window.nonAiChart);
+      }
+      
+      // 初始化比赛统计数据
+      async function initCompetitionStats() {
+        try {
+          console.log('开始获取比赛统计数据...');
+          const response = await fetch('/api/competition/current-stats');
+          console.log('API响应状态:', response.status);
+          
+          if (response.ok) {
+            const result = await response.json();
+            console.log('API响应数据:', result);
+            
+            if (result.code === 200 && result.data) {
+              console.log('开始更新比赛统计数据...');
+              updateCompetitionStats(result.data);
+              console.log('比赛统计数据加载成功:', result.data);
+            } else {
+              console.warn('比赛统计数据为空，使用默认数据');
+            }
+          } else {
+            console.warn('无法获取比赛统计数据，使用默认数据');
+          }
+        } catch (error) {
+          console.error('获取比赛统计数据失败:', error);
+        }
+      }
+      
+      // 初始化全部通过人员列表
+      async function initFullPassUsers() {
+        try {
+          console.log('开始获取全部通过人员列表...');
+          
+          // 并行获取AI组和非AI组的全部通过人员
+          const [aiResponse, nonAiResponse] = await Promise.all([
+            fetch('/api/submission/full-pass?groupType=AI组'),
+            fetch('/api/submission/full-pass?groupType=非AI组')
+          ]);
+          
+          if (aiResponse.ok && nonAiResponse.ok) {
+            const aiResult = await aiResponse.json();
+            const nonAiResult = await nonAiResponse.json();
+            
+            if (aiResult.code === 200 && aiResult.data) {
+              updateFullPassUsersList('ai', aiResult.data);
+              console.log('AI组全部通过人员加载成功:', aiResult.data);
+            }
+            
+            if (nonAiResult.code === 200 && nonAiResult.data) {
+              updateFullPassUsersList('nonai', nonAiResult.data);
+              console.log('非AI组全部通过人员加载成功:', nonAiResult.data);
+            }
+          } else {
+            console.warn('无法获取全部通过人员列表');
+          }
+        } catch (error) {
+          console.error('获取全部通过人员列表失败:', error);
+        }
+      }
+      
+      // 格式化时间（秒转为分:秒格式）
+      function formatTime(seconds) {
+        if (seconds == null || seconds == 0) {
+          return "0:00";
+        }
+        const minutes = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${minutes}:${secs.toString().padStart(2, '0')}`;
+      }
+      
+      // 更新全部通过人员列表显示
+      function updateFullPassUsersList(groupType, users) {
+        const containerId = groupType === 'ai' ? 'ai-group-rankings' : 'nonai-group-rankings';
+        const container = document.getElementById(containerId);
+        
+        if (!container) {
+          console.error(`找不到容器: ${containerId}`);
+          return;
+        }
+        
+        // 清空现有内容
+        container.innerHTML = '';
+        
+        if (!users || users.length === 0) {
+          container.innerHTML = '<div class="text-center text-gray-500 py-4">暂无全部通过人员</div>';
+          return;
+        }
+        
+        // 生成列表项
+        users.forEach((user, index) => {
+          const rank = index + 1;
+          const completionTime = user.completionTime ? formatTime(user.completionTime) : '--';
+          const submitTime = user.submitTime ? new Date(user.submitTime).toLocaleTimeString() : '--';
+          
+          const listItem = document.createElement('div');
+          listItem.className = 'grid grid-cols-12 gap-2 items-center py-2 px-3 rounded-lg bg-dark/30 hover:bg-dark/50 transition-colors';
+          
+          listItem.innerHTML = `
+            <div class="col-span-2 flex items-center">
+              <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                rank <= 3 ? 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-black' : 'bg-gray-600 text-white'
+              }">
+                ${rank}
+              </span>
+            </div>
+            <div class="col-span-3 text-sm font-medium text-white truncate">${user.username || '--'}</div>
+            <div class="col-span-3 text-sm text-gray-300 truncate">${user.subGroup || '--'}</div>
+            <div class="col-span-4 text-sm text-gray-300">${submitTime}</div>
+          `;
+          
+          container.appendChild(listItem);
+        });
+      }
+      
+      // 更新比赛统计数据
+      function updateCompetitionStats(stats) {
+        // 更新总体通过率
+        if (stats.overallPassRate !== null && stats.overallPassRate !== undefined) {
+          document.getElementById('overall-pass-rate').textContent = `${stats.overallPassRate.toFixed(1)}%`;
+        }
+        
+        // 更新AI组通过率
+        if (stats.aiPassRate !== null && stats.aiPassRate !== undefined) {
+          document.getElementById('ai-pass-rate').textContent = `${stats.aiPassRate.toFixed(1)}%`;
+          document.getElementById('vs-ai-rate').textContent = `${stats.aiPassRate.toFixed(1)}%`;
+        }
+        
+        // 更新非AI组通过率
+        if (stats.nonAiPassRate !== null && stats.nonAiPassRate !== undefined) {
+          document.getElementById('nonai-pass-rate').textContent = `${stats.nonAiPassRate.toFixed(1)}%`;
+          document.getElementById('vs-nonai-rate').textContent = `${stats.nonAiPassRate.toFixed(1)}%`;
+        }
+        
+        // 更新AI组平均时间
+        if (stats.aiAverageTime) {
+          document.getElementById('ai-average-time').textContent = stats.aiAverageTime;
+        }
+        
+        // 更新非AI组平均时间
+        if (stats.nonAiAverageTime) {
+          document.getElementById('nonai-average-time').textContent = stats.nonAiAverageTime;
+        }
+        
+        // 更新对比进度条
+        const aiRate = stats.aiPassRate || 0;
+        const nonaiRate = stats.nonAiPassRate || 0;
+        updateVersusBar(aiRate, nonaiRate);
+        
+        // 更新小组图表数据
+        if (stats.subGroupStats && stats.subGroupStats.length > 0) {
+          updateChartsWithRealData(stats.subGroupStats);
+        }
+      }
+      
+      // 使用真实数据更新图表
+      function updateChartsWithRealData(subGroupStats) {
+        console.log('开始更新图表数据:', subGroupStats);
+        
+        // 检查图表是否已初始化
+        if (!window.aiChart || !window.nonAiChart) {
+          console.log('图表未初始化，重新初始化图表...');
+          console.log('当前AI图表状态:', window.aiChart);
+          console.log('当前非AI图表状态:', window.nonAiChart);
+          initCharts();
+          // 等待图表初始化完成
+          setTimeout(() => {
+            updateChartsWithRealData(subGroupStats);
+          }, 1000);
+          return;
+        }
+        
+        // 检查图表实例是否正确
+        if (typeof window.aiChart !== 'object' || !window.aiChart.data) {
+          console.error('AI图表实例不正确，重新初始化...');
+          console.log('AI图表类型:', typeof window.aiChart);
+          console.log('AI图表内容:', window.aiChart);
+          initCharts();
+          setTimeout(() => {
+            updateChartsWithRealData(subGroupStats);
+          }, 1000);
+          return;
+        }
+        
+        if (typeof window.nonAiChart !== 'object' || !window.nonAiChart.data) {
+          console.error('非AI图表实例不正确，重新初始化...');
+          console.log('非AI图表类型:', typeof window.nonAiChart);
+          console.log('非AI图表内容:', window.nonAiChart);
+          initCharts();
+          setTimeout(() => {
+            updateChartsWithRealData(subGroupStats);
+          }, 1000);
+          return;
+        }
+        
+        // 分离AI组和非AI组数据
+        const aiGroupStats = subGroupStats.filter(stat => stat.groupType === 'AI组');
+        const nonAiGroupStats = subGroupStats.filter(stat => stat.groupType === '非AI组');
+        
+        console.log('AI组数据:', aiGroupStats);
+        console.log('非AI组数据:', nonAiGroupStats);
+        
+        // 更新AI组图表
+        if (aiGroupStats.length > 0 && window.aiChart && window.aiChart.data && window.aiChart.data.datasets) {
+          // 按小组名称排序确保数据顺序正确
+          const sortedAiStats = aiGroupStats.sort((a, b) => {
+            const order = ['AI-1小组', 'AI-2小组', 'AI-3小组', 'AI-4小组'];
+            return order.indexOf(a.subGroupName) - order.indexOf(b.subGroupName);
+          });
+          
+          window.aiChart.data.datasets[0].data = sortedAiStats.map(stat => stat.passRate);
+          window.aiChart.update('active');
+          console.log('AI组图表已更新:', sortedAiStats.map(stat => `${stat.subGroupName}: ${stat.passRate}%`));
+        } else {
+          console.error('AI组图表未找到或数据为空', {
+            aiGroupStatsLength: aiGroupStats.length,
+            aiChart: window.aiChart,
+            hasData: window.aiChart && window.aiChart.data,
+            hasDatasets: window.aiChart && window.aiChart.data && window.aiChart.data.datasets
+          });
+        }
+        
+        // 更新非AI组图表
+        if (nonAiGroupStats.length > 0 && window.nonAiChart && window.nonAiChart.data && window.nonAiChart.data.datasets) {
+          // 按小组名称排序确保数据顺序正确
+          const sortedNonAiStats = nonAiGroupStats.sort((a, b) => {
+            const order = ['非AI-1小组', '非AI-2小组'];
+            return order.indexOf(a.subGroupName) - order.indexOf(b.subGroupName);
+          });
+          
+          window.nonAiChart.data.datasets[0].data = sortedNonAiStats.map(stat => stat.passRate);
+          window.nonAiChart.update('active');
+          console.log('非AI组图表已更新:', sortedNonAiStats.map(stat => `${stat.subGroupName}: ${stat.passRate}%`));
+        } else {
+          console.error('非AI组图表未找到或数据为空', {
+            nonAiGroupStatsLength: nonAiGroupStats.length,
+            nonAiChart: window.nonAiChart,
+            hasData: window.nonAiChart && window.nonAiChart.data,
+            hasDatasets: window.nonAiChart && window.nonAiChart.data && window.nonAiChart.data.datasets
+          });
+        }
+      }
+      
+      // 初始化图表
+      initCharts();
+      
+      // 初始化对比进度条（使用当前显示的通过率）
+      const initialAiRate = parseFloat(document.getElementById('ai-pass-rate').textContent) || 78.4;
+      const initialNonaiRate = parseFloat(document.getElementById('nonai-pass-rate').textContent) || 62.8;
+      updateVersusBar(initialAiRate, initialNonaiRate);
+      
+      // 添加滚动动画
+      const scrollContainer = document.querySelector('.scroll-container');
+      let scrollPosition = 0;
+      const scrollSpeed = 0.3;
+      
+      function animateScroll() {
+        // 自动滚动到底部显示最新内容
+        if (scrollPosition < submissionFeed.offsetHeight - scrollContainer.offsetHeight) {
+          scrollPosition += scrollSpeed;
+        }
+        scrollContainer.scrollTop = scrollPosition;
+        requestAnimationFrame(animateScroll);
+      }
+      
+      // 启动滚动动画
+      animateScroll();
+      
+      // 初始计算总体通过率
+      updateOverallPassRate();
+      
+      // 结束比赛按钮事件 - 使用更安全的方式绑定
+      const endCompetitionBtn = document.getElementById('end-competition');
+      if (endCompetitionBtn) {
+        endCompetitionBtn.addEventListener('click', function() {
+          console.log('结束比赛按钮被点击');
+          endCompetition();
+        });
+        console.log('结束比赛按钮事件监听器已绑定');
+      } else {
+        console.error('找不到结束比赛按钮元素');
+      }
+      
+      // 关闭模态框按钮事件
+      document.getElementById('close-modal').addEventListener('click', function() {
+        document.getElementById('result-modal').classList.remove('active');
+      });
+      
+      // 结束比赛函数 - 定义为全局函数
+      window.endCompetition = function() {
+        console.log('endCompetition函数被调用，competitionEnded:', window.competitionEnded);
+        
+        if (window.competitionEnded) {
+          // 比赛已经结束，直接显示结果页面
+          console.log('比赛已结束，直接显示结果页面');
+          calculateAndShowResults();
+          
+          // 立即显示结果模态框
+          setTimeout(() => {
+            const modal = document.getElementById('result-modal');
+            console.log('尝试显示结果模态框，modal元素:', modal);
+            if (modal) {
+              modal.classList.add('active');
+              console.log('结果模态框已显示');
+            } else {
+              console.error('找不到result-modal元素');
+            }
+          }, 1000); // 1秒后显示，给数据加载一些时间
+          return;
+        }
+        
+        window.competitionEnded = true;
+        clearInterval(countdownInterval);
+        clearInterval(realTimeUpdateInterval); // 停止实时数据更新
+        
+        // 显示比赛结束庆祝效果
+        showCompetitionEndCelebration();
+        
+        // 计算比赛结果
+        calculateAndShowResults();
+        
+        // 3秒后显示结果模态框
+        setTimeout(() => {
+          document.getElementById('result-modal').classList.add('active');
+        }, 3000);
+      };
+      
+       // 显示比赛结束庆祝效果
+       window.showCompetitionEndCelebration = function() {
+         const celebrationContainer = document.getElementById('celebration');
+         const celebrationText = document.getElementById('celebration-text');
+         
+         // 设置庆祝文本
+         celebrationText.textContent = "比赛结束！";
+         celebrationText.className = "celebration-text";
+         celebrationText.style.color = "#FFD700";
+         celebrationText.style.textShadow = "0 0 40px rgba(255, 215, 0, 1), 0 0 80px rgba(255, 215, 0, 0.8), 0 0 120px rgba(255, 165, 0, 0.6), 0 0 160px rgba(255, 140, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.5)";
+         celebrationText.style.fontSize = "6rem";
+         celebrationText.style.fontWeight = "900";
+         celebrationText.style.letterSpacing = "0.2em";
+         celebrationText.style.whiteSpace = "nowrap";
+         
+         // 语音播报比赛结束
+         speakText("比赛结束！感谢各位参赛选手的精彩表现！");
+         
+         // 显示庆祝容器
+         celebrationContainer.classList.add('active');
+         
+         // 添加文字动画
+         celebrationText.style.animation = 'popIn 1s forwards';
+         
+         // 创建更多的彩色纸屑和烟花
+         createConfetti(300);
+         createFireworks(15);
+         
+         // 5秒后结束庆祝动画（比赛结束庆祝应该比普通庆祝持续时间更长）
+         setTimeout(() => {
+           // 淡出文字
+           celebrationText.style.animation = 'fadeOut 1s forwards';
+           
+           // 1秒后隐藏容器
+           setTimeout(() => {
+             celebrationContainer.classList.remove('active');
+             // 清除所有动画元素
+             while (celebrationContainer.children.length > 1) {
+               celebrationContainer.removeChild(celebrationContainer.lastChild);
+             }
+           }, 1000);
+         }, 5000);
+       }
+      
+      // 计算并显示比赛结果
+      window.calculateAndShowResults = function() {
+        console.log('开始计算比赛结果...');
+        console.log('calculateAndShowResults函数被调用');
+        console.log('当前competitionEnded状态:', window.competitionEnded);
+        
+        // 从后端获取最新的统计数据
+        fetch('/api/competition/current-stats')
+          .then(response => response.json())
+          .then(data => {
+            if (data.code === 200 && data.data) {
+              const stats = data.data;
+              console.log('获取到统计数据:', stats);
+              
+              // 使用后端返回的小组统计数据
+        const subGroupStats = {};
+              if (stats.subGroupStats && stats.subGroupStats.length > 0) {
+                stats.subGroupStats.forEach(stat => {
+                  subGroupStats[stat.subGroupName] = {
+                    total: stat.userCount,
+                    success: stat.passedCount,
+                    passRate: stat.passRate  // 使用后端已经计算好的通过率
+                  };
+                });
+              }
+              
+              console.log('处理后的subGroupStats:', subGroupStats);
+              
+              // 计算每个小组的通过率，找到最高的小组
+              let bestSubGroup = '';
+              let bestSubGroupRate = 0;
+              let bestSubGroupStats = null;
+              let bestSubGroupAverageTime = '';
+              
+              // 遍历所有小组，找到通过率最高的小组
+              for (const [subGroupName, stats] of Object.entries(subGroupStats)) {
+                if (stats.total > 0) {
+                  const passRate = stats.passRate;  // 直接使用后端计算的通过率
+                  if (passRate > bestSubGroupRate) {
+                    bestSubGroupRate = passRate;
+                    bestSubGroup = subGroupName;
+                    bestSubGroupStats = stats;
+                  }
+                }
+              }
+              
+              // 获取该小组的平均完成时间
+              if (bestSubGroup) {
+                // 根据小组类型获取对应的平均时间
+                if (bestSubGroup.includes('AI')) {
+                  bestSubGroupAverageTime = document.getElementById('ai-average-time').textContent;
+                } else if (bestSubGroup.includes('非AI')) {
+                  bestSubGroupAverageTime = document.getElementById('nonai-average-time').textContent;
+                }
+              }
+              
+              console.log('胜者组计算:', {
+                bestSubGroup,
+                bestSubGroupRate,
+                bestSubGroupStats,
+                subGroupStats
+              });
+              
+              displayWinnerGroup(bestSubGroup, bestSubGroupRate, bestSubGroupStats, bestSubGroupAverageTime);
+              
+              // 填充各小组数据统计表格
+              displayAllSubGroupStats(stats.subGroupStats);
+              
+              // 更新优秀达人TOP3显示（使用页面数据）
+              updateFinalTop3Display();
+            } else {
+              console.error('获取统计数据失败:', data);
+              displayDefaultWinnerGroup();
+            }
+          })
+          .catch(error => {
+            console.error('获取统计数据时出错:', error);
+            displayDefaultWinnerGroup();
+          });
+      }
+      
+      // 显示胜者组信息
+      function displayWinnerGroup(bestSubGroup, bestSubGroupRate, bestSubGroupStats, bestSubGroupAverageTime) {
+        const winnerGroupContainer = document.getElementById('winner-group');
+        let winnerHtml = '';
+        
+        if (bestSubGroup && bestSubGroupStats) {
+          const isAiGroup = bestSubGroup.includes('AI');
+          const groupColor = isAiGroup ? 'ai' : 'nonai';
+          
+          winnerHtml = `
+            <div class="flex flex-col items-center">
+              <div class="w-16 h-16 rounded-full bg-${groupColor}/20 flex items-center justify-center mb-3">
+                <i class="fa fa-trophy text-3xl text-${groupColor}"></i>
+              </div>
+              <h3 class="text-xl md:text-2xl font-bold text-${groupColor} mb-3">${bestSubGroup}获胜！</h3>
+              <div class="flex gap-4 mt-1">
+                <div class="text-center">
+                  <p class="text-gray-400 text-xs">通过率</p>
+                  <p class="text-xl font-bold text-${groupColor}">${bestSubGroupRate.toFixed(1)}%</p>
+                </div>
+                <div class="text-center">
+                  <p class="text-gray-400 text-xs">通过人数</p>
+                  <p class="text-xl font-bold text-${groupColor}">${bestSubGroupStats.success}</p>
+                </div>
+                <div class="text-center">
+                  <p class="text-gray-400 text-xs">平均完成时间</p>
+                  <p class="text-lg font-semibold text-${groupColor}">${bestSubGroupAverageTime}</p>
+                </div>
+              </div>
+            </div>
+          `;
+        } else {
+          winnerHtml = `
+            <div class="flex flex-col items-center">
+              <div class="w-16 h-16 rounded-full bg-gray-600/20 flex items-center justify-center mb-3">
+                <i class="fa fa-trophy text-3xl text-gray-400"></i>
+              </div>
+              <h3 class="text-xl md:text-2xl font-bold text-gray-400 mb-3">暂无胜者</h3>
+              <p class="text-gray-500 text-sm">所有小组表现相当</p>
+            </div>
+          `;
+        }
+        
+        winnerGroupContainer.innerHTML = winnerHtml;
+      }
+      
+      // 显示默认胜者组信息
+      function displayDefaultWinnerGroup() {
+        console.log('显示默认胜者组信息');
+        const winnerGroupContainer = document.getElementById('winner-group');
+        winnerGroupContainer.innerHTML = `
+          <div class="flex flex-col items-center">
+            <div class="w-16 h-16 rounded-full bg-gray-600/20 flex items-center justify-center mb-3">
+              <i class="fa fa-trophy text-3xl text-gray-400"></i>
+            </div>
+            <h3 class="text-xl md:text-2xl font-bold text-gray-400 mb-3">数据加载中...</h3>
+            <p class="text-gray-500 text-sm">正在计算比赛结果</p>
+          </div>
+        `;
+      }
+      
+      // 显示所有小组统计数据
+      function displayAllSubGroupStats(subGroupStats) {
+        const tbody = document.getElementById('subgroup-stats-tbody');
+        if (!tbody || !subGroupStats || subGroupStats.length === 0) {
+          console.warn('无法找到表格或没有小组数据');
+          return;
+        }
+        
+        // 清空现有内容
+        tbody.innerHTML = '';
+        
+        // 按排名排序（后端已经排序了）
+        subGroupStats.forEach((stat, index) => {
+          const row = document.createElement('tr');
+          row.className = 'border-b border-gray-700/50 hover:bg-gray-800/30 transition-colors';
+          
+          // 根据组类型设置颜色（蓝色为AI组，粉色为非AI组）
+          let rankColorClass = '';
+          let groupColorClass = '';
+          if (stat.groupType === 'AI组') {
+            rankColorClass = 'text-ai font-bold';
+            groupColorClass = 'text-ai';
+          } else {
+            rankColorClass = 'text-nonai font-bold';
+            groupColorClass = 'text-nonai';
+          }
+          
+          row.innerHTML = `
+            <td class="px-4 py-3 text-center">
+              <span class="${rankColorClass}">${stat.rank}</span>
+            </td>
+            <td class="px-4 py-3">
+              <span class="${groupColorClass} font-medium">${stat.subGroupName}</span>
+            </td>
+            <td class="px-4 py-3 text-center">
+              <span class="text-white font-semibold">${stat.passRate.toFixed(1)}%</span>
+            </td>
+            <td class="px-4 py-3 text-center">
+              <span class="text-white">${stat.passedCount}</span>
+            </td>
+            <td class="px-4 py-3 text-center">
+              <span class="text-gray-300">${stat.averageTime || '暂无数据'}</span>
+            </td>
+          `;
+          
+          tbody.appendChild(row);
+        });
+        
+        console.log('已填充各小组数据统计表格，共', subGroupStats.length, '个小组');
+      }
+      
+      // 更新优秀达人TOP3显示（使用页面数据）
+      function updateFinalTop3Display() {
+        // 获取页面中按时间排序的成功用户数据
+        const successfulUsers = Object.entries(userFirstSuccess)
+          .filter(([userName, data]) => data.time !== null)
+          .map(([userName, data]) => ({ userName, ...data }));
+        const allRankedUsers = [...successfulUsers].sort((a, b) => a.time - b.time);
+        
+        console.log('页面TOP3数据:', allRankedUsers.slice(0, 3));
+        
+        // 更新第一名
+        if (allRankedUsers.length >= 1) {
+          const top1 = allRankedUsers[0];
+          const top1Name = document.getElementById('top1-name');
+          const top1Group = document.getElementById('top1-group');
+          const top1Time = document.getElementById('top1-time');
+          
+          if (top1Name) top1Name.textContent = top1.userName;
+          if (top1Group) {
+            top1Group.className = top1.isAiGroup 
+              ? 'bg-ai/20 text-ai px-3 py-0.5 rounded-full text-xs' 
+              : 'bg-nonai/20 text-nonai px-3 py-0.5 rounded-full text-xs';
+            top1Group.textContent = top1.subGroup || (top1.isAiGroup ? 'AI组' : '非AI组');
+          }
+          if (top1Time) {
+            const timeString = formatTime(top1.time);
+            top1Time.textContent = `完成时间: ${timeString}`;
+          }
+        }
+        
+        // 更新第二名
+        if (allRankedUsers.length >= 2) {
+          const top2 = allRankedUsers[1];
+          const top2Name = document.getElementById('top2-name');
+          const top2Group = document.getElementById('top2-group');
+          const top2Time = document.getElementById('top2-time');
+          
+          if (top2Name) top2Name.textContent = top2.userName;
+          if (top2Group) {
+            top2Group.className = top2.isAiGroup 
+              ? 'bg-ai/20 text-ai px-3 py-0.5 rounded-full text-xs' 
+              : 'bg-nonai/20 text-nonai px-3 py-0.5 rounded-full text-xs';
+            top2Group.textContent = top2.subGroup || (top2.isAiGroup ? 'AI组' : '非AI组');
+          }
+          if (top2Time) {
+            const timeString = formatTime(top2.time);
+            top2Time.textContent = `完成时间: ${timeString}`;
+          }
+        }
+        
+        // 更新第三名
+        if (allRankedUsers.length >= 3) {
+          const top3 = allRankedUsers[2];
+          const top3Name = document.getElementById('top3-name');
+          const top3Group = document.getElementById('top3-group');
+          const top3Time = document.getElementById('top3-time');
+          
+          if (top3Name) top3Name.textContent = top3.userName;
+          if (top3Group) {
+            top3Group.className = top3.isAiGroup 
+              ? 'bg-ai/20 text-ai px-3 py-0.5 rounded-full text-xs' 
+              : 'bg-nonai/20 text-nonai px-3 py-0.5 rounded-full text-xs';
+            top3Group.textContent = top3.subGroup || (top3.isAiGroup ? 'AI组' : '非AI组');
+          }
+          if (top3Time) {
+            const timeString = formatTime(top3.time);
+            top3Time.textContent = `完成时间: ${timeString}`;
+          }
+        }
+      }
+    });
+    
+    // 创建二进制字符背景动画
+    function createBinaryCharactersBackground() {
+      const container = document.getElementById('binary-characters-container');
+      const characterCount = 100; // 字符数量
+      
+      // 添加二进制字符动画样式
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes binaryFloat {
+          0% {
+            transform: translateY(0) rotate(0deg);
+            opacity: 0;
+          }
+          10% {
+            opacity: 0.3;
+          }
+          90% {
+            opacity: 0.3;
+          }
+          100% {
+            transform: translateY(100vh) rotate(360deg);
+            opacity: 0;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+      
+      // 创建初始字符
+      for (let i = 0; i < characterCount; i++) {
+        createBinaryCharacter(container);
+      }
+      
+      // 定期添加新字符
+      setInterval(() => {
+        createBinaryCharacter(container);
+        
+        // 限制总字符数量
+        if (container.children.length > characterCount * 1.5) {
+          container.removeChild(container.firstChild);
+        }
+      }, 100);
+    }
+    
+    // 创建单个二进制字符
+    function createBinaryCharacter(container) {
+      const charEl = document.createElement('div');
+      charEl.className = 'binary-character';
+      
+      // 随机属性
+      const characters = '01'; // 二进制字符
+      const randomChar = characters[Math.floor(Math.random() * characters.length)];
+      const size = Math.random() * 8 + 8; // 字体大小
+      const left = Math.random() * 100; // 水平位置百分比
+      const top = -10; // 从顶部外开始
+      const duration = Math.random() * 20 + 10; // 动画持续时间
+      const delay = Math.random() * 5; // 延迟开始
+      const rotation = Math.random() * 20 - 10; // 轻微旋转
+      
+      // 设置样式
+      charEl.textContent = randomChar;
+      charEl.style.fontSize = `${size}px`;
+      charEl.style.left = `${left}%`;
+      charEl.style.top = `${top}%`;
+      charEl.style.transform = `rotate(${rotation}deg)`;
+      charEl.style.animation = `binaryFloat ${duration}s ease-in ${delay}s forwards`;
+      
+      container.appendChild(charEl);
+      
+      // 动画结束后移除元素
+      setTimeout(() => {
+        if (charEl.parentNode === container) {
+          container.removeChild(charEl);
+        }
+      }, (duration + delay) * 1000);
+    }
+  </script>
+
+  <!-- 全局函数定义 -->
+  <script>
+    // 全局变量
+    window.competitionEnded = false;
+    
+    // 全局结束比赛函数
+    window.endCompetition = function() {
+      console.log('全局endCompetition函数被调用，competitionEnded:', window.competitionEnded);
+      
+      if (window.competitionEnded) {
+        // 比赛已经结束，直接显示结果页面
+        console.log('比赛已结束，直接显示结果页面');
+        if (typeof window.calculateAndShowResults === 'function') {
+          window.calculateAndShowResults();
+        }
+        
+        // 立即显示结果模态框
+        setTimeout(() => {
+          const modal = document.getElementById('result-modal');
+          console.log('尝试显示结果模态框，modal元素:', modal);
+          if (modal) {
+            modal.classList.add('active');
+            console.log('结果模态框已显示');
+          } else {
+            console.error('找不到result-modal元素');
+          }
+        }, 1000); // 1秒后显示，给数据加载一些时间
+        return;
+      }
+      
+      window.competitionEnded = true;
+      
+      // 停止所有定时器
+      if (window.countdownInterval) {
+        clearInterval(window.countdownInterval);
+      }
+      if (window.realTimeUpdateInterval) {
+        clearInterval(window.realTimeUpdateInterval);
+      }
+      
+      // 显示比赛结束庆祝效果
+      if (typeof window.showCompetitionEndCelebration === 'function') {
+        window.showCompetitionEndCelebration();
+      }
+      
+      // 计算比赛结果
+      if (typeof window.calculateAndShowResults === 'function') {
+        window.calculateAndShowResults();
+      }
+      
+      // 3秒后显示结果模态框
+      setTimeout(() => {
+        const modal = document.getElementById('result-modal');
+        if (modal) {
+          modal.classList.add('active');
+        }
+      }, 3000);
+    };
+    
+    console.log('全局endCompetition函数已定义');
+  </script>
+
+  <!-- 备用的事件绑定，确保按钮可以工作 -->
+  <script>
+    // 页面完全加载后的备用绑定
+    window.addEventListener('load', function() {
+      console.log('页面完全加载，检查结束比赛按钮...');
+      const endBtn = document.getElementById('end-competition');
+      if (endBtn) {
+        console.log('找到结束比赛按钮，绑定点击事件');
+        // 直接绑定点击事件
+        endBtn.addEventListener('click', function() {
+          console.log('结束比赛按钮被点击');
+          if (typeof window.endCompetition === 'function') {
+            window.endCompetition();
+          } else {
+            console.error('window.endCompetition函数未定义');
+          }
+        });
+        console.log('结束比赛按钮事件监听器已绑定');
+      } else {
+        console.error('页面加载完成后仍然找不到结束比赛按钮');
+      }
+    });
+  </script>
+
+    </body></html>
