@@ -179,9 +179,9 @@ public class SubmissionController {
             }
         }
         
-        // 如果未找到用户，使用默认用户ID
+        // 如果未找到用户，使用默认用户ID（使用实际存在的用户ID）
         if (userId == null) {
-            userId = 1L; // 默认用户ID
+            userId = 4L; // 默认用户ID，使用实际存在的用户ID
             log.warn("使用默认用户ID: {}", userId);
         }
         
