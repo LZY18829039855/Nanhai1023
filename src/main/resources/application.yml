@@ -96,7 +96,7 @@ competition:
 # 构建API配置
 build:
   api:
-    base-url: https://backend.pipeline-x.rnd.huawei.com/api/v1
+    base-url: http://backed.pipeline-x.inhuawei.com/api/v1
     query-job-endpoint: /data-api/pipeline-history
     query-package-run-endpoint: /build/artifact-chain-output-cache
     query-report-endpoint: /data-api/report-fail

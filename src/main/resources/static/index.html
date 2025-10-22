@@ -9,6 +9,9 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+  <!-- WebSocket相关库 -->
+  <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
   
   <!-- 配置Tailwind -->
   <script>
@@ -294,10 +297,10 @@
               <i class="fa fa-crown absolute -top-2 -right-1 text-xs text-gold"></i>
             </div>
             <div class="flex-1">
-              <h4 id="top1-name" class="text-xl font-bold">张小明</h4>
+              <h4 id="top1-name" class="text-xl font-bold">加载中...</h4>
               <div class="flex items-center gap-3 mt-1">
-                <span id="top1-group" class="bg-ai/20 text-ai px-3 py-0.5 rounded-full text-xs">AI组</span>
-                <span id="top1-time" class="text-gray-400 text-sm">完成时间: 58秒</span>
+                <span id="top1-group" class="bg-ai/20 text-ai px-3 py-0.5 rounded-full text-xs">加载中...</span>
+                <span id="top1-time" class="text-gray-400 text-sm">完成时间: 加载中...</span>
               </div>
             </div>
           </div>
@@ -308,10 +311,10 @@
               2
             </div>
             <div class="flex-1">
-              <h4 id="top2-name" class="text-xl font-bold">陈静</h4>
+              <h4 id="top2-name" class="text-xl font-bold">加载中...</h4>
               <div class="flex items-center gap-3 mt-1">
-                <span id="top2-group" class="bg-nonai/20 text-nonai px-3 py-0.5 rounded-full text-xs">非AI组</span>
-                <span id="top2-time" class="text-gray-400 text-sm">完成时间: 1分42秒</span>
+                <span id="top2-group" class="bg-nonai/20 text-nonai px-3 py-0.5 rounded-full text-xs">加载中...</span>
+                <span id="top2-time" class="text-gray-400 text-sm">完成时间: 加载中...</span>
               </div>
             </div>
           </div>
@@ -322,10 +325,10 @@
               3
             </div>
             <div class="flex-1">
-              <h4 id="top3-name" class="text-xl font-bold">李华</h4>
+              <h4 id="top3-name" class="text-xl font-bold">加载中...</h4>
               <div class="flex items-center gap-3 mt-1">
-                <span id="top3-group" class="bg-ai/20 text-ai px-3 py-0.5 rounded-full text-xs">AI组</span>
-                <span id="top3-time" class="text-gray-400 text-sm">完成时间: 1分55秒</span>
+                <span id="top3-group" class="bg-ai/20 text-ai px-3 py-0.5 rounded-full text-xs">加载中...</span>
+                <span id="top3-time" class="text-gray-400 text-sm">完成时间: 加载中...</span>
               </div>
             </div>
           </div>
@@ -391,7 +394,7 @@
          
          <div class="bg-dark/50 backdrop-blur-sm px-5 py-3 rounded-full border border-primary/20 flex items-center gap-2 hover:border-primary/40 transition-all duration-300">
            <i class="fa fa-users text-primary text-lg"></i>
-           <span class="text-base md:text-lg">参与总人数: <span class="text-white font-semibold text-lg md:text-xl">60</span></span>
+           <span class="text-base md:text-lg">参与总人数: <span class="text-white font-semibold text-lg md:text-xl" id="total-participants">加载中...</span></span>
          </div>
         
         <!-- 新增：结束比赛按钮 -->
@@ -546,11 +549,11 @@
                   <i class="fa fa-crown absolute -top-2 -right-1 text-xs text-gold"></i>
                 </div>
               </div>
-              <div class="col-span-3 font-bold">张小明</div>
+              <div class="col-span-3 font-bold" id="realtime-top1-name">虚位以待</div>
               <div class="col-span-3">
-                <span class="bg-ai/20 text-ai px-2 py-0.5 rounded-full text-xs">AI组</span>
+                <span class="bg-ai/20 text-ai px-2 py-0.5 rounded-full text-xs" id="realtime-top1-group">--</span>
               </div>
-              <div class="col-span-4 font-semibold text-gold">58秒</div>
+              <div class="col-span-4 font-semibold text-gold" id="realtime-top1-time">--</div>
             </div>
             
             <!-- 亚军 -->
@@ -560,11 +563,11 @@
                   2
                 </div>
               </div>
-              <div class="col-span-3 font-bold">陈静</div>
+              <div class="col-span-3 font-bold" id="realtime-top2-name">虚位以待</div>
               <div class="col-span-3">
-                <span class="bg-nonai/20 text-nonai px-2 py-0.5 rounded-full text-xs">非AI组</span>
+                <span class="bg-nonai/20 text-nonai px-2 py-0.5 rounded-full text-xs" id="realtime-top2-group">--</span>
               </div>
-              <div class="col-span-4 font-semibold text-silver">1分42秒</div>
+              <div class="col-span-4 font-semibold text-silver" id="realtime-top2-time">--</div>
             </div>
             
             <!-- 季军 -->
@@ -574,11 +577,11 @@
                   3
                 </div>
               </div>
-              <div class="col-span-3 font-bold">李华</div>
+              <div class="col-span-3 font-bold" id="realtime-top3-name">虚位以待</div>
               <div class="col-span-3">
-                <span class="bg-ai/20 text-ai px-2 py-0.5 rounded-full text-xs">AI组</span>
+                <span class="bg-ai/20 text-ai px-2 py-0.5 rounded-full text-xs" id="realtime-top3-group">--</span>
               </div>
-              <div class="col-span-4 font-semibold text-bronze">1分55秒</div>
+              <div class="col-span-4 font-semibold text-bronze" id="realtime-top3-time">--</div>
             </div>
           </div>
         </div>
@@ -684,11 +687,14 @@
            window.speechSynthesis.getVoices();
          };
        }
+       
+       // 初始化WebSocket连接
+       initWebSocketConnection();
       
       // 存储用户首次成功提交的时间（用于计算最快提交达人）
       const userFirstSuccess = {};
-      // 存储当前TOP3用户
-      let currentTop3 = ['张小明', '陈静', '李华'];
+      // 存储当前TOP3用户（初始为空，从接口获取）
+      let currentTop3 = [];
       // 比赛是否已结束的标志 - 使用全局变量
       window.competitionEnded = false;
       
@@ -818,8 +824,8 @@
             document.getElementById('nonai-group-count').textContent = nonAiGroupCount;
             
             // 更新总人数显示
-            const totalParticipantsElement = document.querySelector('.text-white.font-semibold.text-lg.md\\:text-xl');
-            if (totalParticipantsElement && totalParticipantsElement.textContent === '60') {
+            const totalParticipantsElement = document.getElementById('total-participants');
+            if (totalParticipantsElement) {
               totalParticipantsElement.textContent = totalCount;
             }
             
@@ -914,8 +920,9 @@
         // 更新第一名
         if (top3Data[0]) {
           const top1 = top3Data[0];
-          document.querySelector('#top1 .col-span-3.font-bold').textContent = top1.username;
-          const top1GroupEl = document.querySelector('#top1 .col-span-3 span');
+          // 更新实时TOP3显示
+          document.querySelector('#realtime-top1-name').textContent = top1.username;
+          const top1GroupEl = document.querySelector('#realtime-top1-group');
           if (top1GroupEl) {
             top1GroupEl.className = top1.groupType === 'AI组'
               ? 'bg-ai/20 text-ai px-2 py-0.5 rounded-full text-xs' 
@@ -929,14 +936,20 @@
             minute: '2-digit', 
             second: '2-digit' 
           });
-          document.querySelector('#top1 .col-span-4.font-semibold.text-gold').textContent = timeString;
+          document.querySelector('#realtime-top1-time').textContent = timeString;
+          
+          // 更新最终TOP3显示
+          document.querySelector('#top1-name').textContent = top1.username;
+          document.querySelector('#top1-group').textContent = top1.subGroup ? top1.subGroup : (top1.groupType === 'AI组' ? 'AI组' : '非AI组');
+          document.querySelector('#top1-time').textContent = `完成时间: ${formatTime(top1.completionTime)}`;
         }
         
         // 更新第二名
         if (top3Data[1]) {
           const top2 = top3Data[1];
-          document.querySelector('#top2 .col-span-3.font-bold').textContent = top2.username;
-          const top2GroupEl = document.querySelector('#top2 .col-span-3 span');
+          // 更新实时TOP3显示
+          document.querySelector('#realtime-top2-name').textContent = top2.username;
+          const top2GroupEl = document.querySelector('#realtime-top2-group');
           if (top2GroupEl) {
             top2GroupEl.className = top2.groupType === 'AI组'
               ? 'bg-ai/20 text-ai px-2 py-0.5 rounded-full text-xs' 
@@ -950,14 +963,20 @@
             minute: '2-digit', 
             second: '2-digit' 
           });
-          document.querySelector('#top2 .col-span-4.font-semibold.text-silver').textContent = timeString;
+          document.querySelector('#realtime-top2-time').textContent = timeString;
+          
+          // 更新最终TOP3显示
+          document.querySelector('#top2-name').textContent = top2.username;
+          document.querySelector('#top2-group').textContent = top2.subGroup ? top2.subGroup : (top2.groupType === 'AI组' ? 'AI组' : '非AI组');
+          document.querySelector('#top2-time').textContent = `完成时间: ${formatTime(top2.completionTime)}`;
         }
         
         // 更新第三名
         if (top3Data[2]) {
           const top3 = top3Data[2];
-          document.querySelector('#top3 .col-span-3.font-bold').textContent = top3.username;
-          const top3GroupEl = document.querySelector('#top3 .col-span-3 span');
+          // 更新实时TOP3显示
+          document.querySelector('#realtime-top3-name').textContent = top3.username;
+          const top3GroupEl = document.querySelector('#realtime-top3-group');
           if (top3GroupEl) {
             top3GroupEl.className = top3.groupType === 'AI组'
               ? 'bg-ai/20 text-ai px-2 py-0.5 rounded-full text-xs' 
@@ -971,7 +990,12 @@
             minute: '2-digit', 
             second: '2-digit' 
           });
-          document.querySelector('#top3 .col-span-4.font-semibold.text-bronze').textContent = timeString;
+          document.querySelector('#realtime-top3-time').textContent = timeString;
+          
+          // 更新最终TOP3显示
+          document.querySelector('#top3-name').textContent = top3.username;
+          document.querySelector('#top3-group').textContent = top3.subGroup ? top3.subGroup : (top3.groupType === 'AI组' ? 'AI组' : '非AI组');
+          document.querySelector('#top3-time').textContent = `完成时间: ${formatTime(top3.completionTime)}`;
         }
       }
       
@@ -1088,19 +1112,109 @@
       // 初始化构建记录数据
       const submissionFeed = document.getElementById('submission-feed');
       
-      // 从后端获取最近的提交记录
-      async function loadRecentSubmissions() {
-        try {
-          const response = await fetch('/api/submission/recent?limit=10');
-          if (response.ok) {
-            const result = await response.json();
-            if (result.code === 200 && result.data) {
+      // 从后端获取所有提交记录
+        async function loadRecentSubmissions() {
+          try {
+            // 获取所有提交记录
+            const response = await fetch('/api/submission/all');
+            if (response.ok) {
+              const result = await response.json();
+              if (result.code === 200 && result.data) {
+                const recentSubmissions = result.data;
+              // 检查是否有庆祝动画正在进行
+              const celebrationContainer = document.getElementById('celebration');
+              const isCelebrationActive = celebrationContainer && celebrationContainer.classList.contains('active');
+              
+              // 如果有庆祝动画正在进行，跳过这次更新
+              if (isCelebrationActive) {
+                console.log('庆祝动画进行中，跳过提交记录更新');
+                return;
+              }
+              
+              // 获取当前显示的提交记录ID列表
+              const currentSubmissionIds = Array.from(submissionFeed.children).map(el => {
+                const userId = el.getAttribute('data-user-id');
+                const submitTime = el.getAttribute('data-submit-time');
+                return userId + '_' + submitTime;
+              });
+              
               // 清空现有内容
               submissionFeed.innerHTML = '';
-              // 添加真实的提交记录
+              
+              // 直接构建HTML元素，按后端返回的顺序添加（最新的在上面）
               result.data.forEach(submission => {
-                addRealSubmissionRecord(submission);
+                const submissionKey = submission.userId + '_' + submission.submitTime;
+                const isNewSubmission = !currentSubmissionIds.includes(submissionKey);
+                
+                // 获取用户信息
+                const userInfo = getUserInfoById(submission.userId);
+                const isAiGroup = userInfo && userInfo.groupType === 'AI组';
+                
+                const buildEl = document.createElement('div');
+                buildEl.className = `bg-dark/50 p-2.5 rounded-lg border ${isAiGroup ? 'border-ai/20' : 'border-nonai/20'} flex items-center gap-2 transform transition-all duration-500 hover:translate-x-1`;
+                
+                // 添加数据属性用于识别新记录
+                buildEl.setAttribute('data-user-id', submission.userId);
+                buildEl.setAttribute('data-submit-time', submission.submitTime);
+                
+                const groupBadge = isAiGroup ? 
+                  '<span class="w-2 h-2 rounded-full bg-ai"></span>' : 
+                  '<span class="w-2 h-2 rounded-full bg-nonai"></span>';
+                
+                // 判断是否全部通过
+                const totalCases = window.totalCases || 20; // 使用动态的总用例数
+                const isFullSuccess = submission.passed === totalCases;
+                const successRate = submission.passed ? (submission.passed / totalCases * 100).toFixed(1) : '0.0';
+                
+                const resultBadge = isFullSuccess ? 
+                  `<span class="ml-auto flex items-center gap-1.5 px-2 py-0.5 rounded text-xs"><span class="text-gray-400">${successRate}%</span><span class="bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">成功</span></span>` : 
+                  `<span class="ml-auto flex items-center gap-1.5 px-2 py-0.5 rounded text-xs"><span class="text-gray-400">${successRate}%</span><span class="bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded">失败</span></span>`;
+                
+                // 计算从比赛开始到提交的时间差
+                let timeDifference = 0;
+                if (submission.submitTime && window.competitionStartTime) {
+                  const submitTime = new Date(submission.submitTime);
+                  const startTime = new Date(window.competitionStartTime);
+                  timeDifference = Math.floor((submitTime - startTime) / 1000); // 转换为秒
+                }
+                
+                // 格式化时间差（秒转分秒）
+                const minutes = Math.floor(timeDifference / 60);
+                const seconds = timeDifference % 60;
+                const formattedTime = minutes > 0 ? `${minutes}分${seconds}秒` : `${seconds}秒`;
+                
+                // 格式化提交时间
+                const submitTime = submission.submitTime ? new Date(submission.submitTime).toLocaleTimeString('zh-CN', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit'
+                }) : '--';
+                
+                buildEl.innerHTML = `
+                  ${groupBadge}
+                  <span class="text-sm truncate max-w-[80px]">${userInfo ? userInfo.userName : '未知用户'}</span>
+                  <span class="text-gray-400 text-sm flex-1 truncate">提交 (${formattedTime})</span>
+                  <span class="text-gray-500 text-xs whitespace-nowrap">${submitTime}</span>
+                  ${resultBadge}
+                `;
+                
+                // 按顺序添加到列表末尾（因为后端已按降序返回，所以最新的会在最上面）
+                submissionFeed.appendChild(buildEl);
+                
+                // 如果是新提交且是满分，触发庆祝特效
+                if (isNewSubmission && isFullSuccess) {
+                  console.log('检测到新的满分提交，触发庆祝特效:', submission);
+                  triggerCelebration(userInfo ? userInfo.userName : '未知用户');
+                  updateRankings();
+                }
               });
+              
+              // 保持列表长度
+              if (submissionFeed.children.length > 50) {
+                while (submissionFeed.children.length > 50) {
+                  submissionFeed.removeChild(submissionFeed.lastChild);
+                }
+              }
             }
           }
         } catch (error) {
@@ -1108,31 +1222,44 @@
         }
       }
       
-      function addRealSubmissionRecord(submission, prepend = false) {
+      function addRealSubmissionRecord(submission, prepend = false, skipCelebration = false) {
         if (window.competitionEnded) return; // 比赛结束后不再添加记录
         
-        // 获取用户信息
+        // 获取用户信息 - 现在submission是SubmissionDTO格式，需要通过getUserInfoById获取用户信息
         const userInfo = getUserInfoById(submission.userId);
         const isAiGroup = userInfo && userInfo.groupType === 'AI组';
         
         const buildEl = document.createElement('div');
         buildEl.className = `bg-dark/50 p-2.5 rounded-lg border ${isAiGroup ? 'border-ai/20' : 'border-nonai/20'} flex items-center gap-2 transform transition-all duration-500 hover:translate-x-1`;
         
+        // 添加数据属性用于识别新记录
+        buildEl.setAttribute('data-user-id', submission.userId);
+        buildEl.setAttribute('data-submit-time', submission.submitTime);
+        
         const groupBadge = isAiGroup ? 
           '<span class="w-2 h-2 rounded-full bg-ai"></span>' : 
           '<span class="w-2 h-2 rounded-full bg-nonai"></span>';
         
-        // 判断是否全部通过（20个用例）
-        const isFullSuccess = submission.passed === 20;
-        const successRate = submission.passed ? (submission.passed / 20 * 100).toFixed(1) : '0.0';
+        // 判断是否全部通过
+        const totalCases = window.totalCases || 20; // 使用动态的总用例数
+        const isFullSuccess = submission.passed === totalCases;
+        const successRate = submission.passed ? (submission.passed / totalCases * 100).toFixed(1) : '0.0';
         
         const resultBadge = isFullSuccess ? 
           `<span class="ml-auto flex items-center gap-1.5 px-2 py-0.5 rounded text-xs"><span class="text-gray-400">${successRate}%</span><span class="bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">成功</span></span>` : 
           `<span class="ml-auto flex items-center gap-1.5 px-2 py-0.5 rounded text-xs"><span class="text-gray-400">${successRate}%</span><span class="bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded">失败</span></span>`;
         
-        // 格式化完成时间（秒转分秒）
-        const minutes = Math.floor((submission.completionTime || 0) / 60);
-        const seconds = (submission.completionTime || 0) % 60;
+        // 计算从比赛开始到提交的时间差
+        let timeDifference = 0;
+        if (submission.submitTime && window.competitionStartTime) {
+          const submitTime = new Date(submission.submitTime);
+          const startTime = new Date(window.competitionStartTime);
+          timeDifference = Math.floor((submitTime - startTime) / 1000); // 转换为秒
+        }
+        
+        // 格式化时间差（秒转分秒）
+        const minutes = Math.floor(timeDifference / 60);
+        const seconds = timeDifference % 60;
         const formattedTime = minutes > 0 ? `${minutes}分${seconds}秒` : `${seconds}秒`;
         
         // 格式化提交时间
@@ -1150,16 +1277,14 @@
           ${resultBadge}
         `;
         
-        if (prepend) {
-          submissionFeed.insertBefore(buildEl, submissionFeed.firstChild);
-          // 添加新元素时的动画效果
-          buildEl.classList.add('scale-95', 'opacity-0');
-          setTimeout(() => {
-            buildEl.classList.remove('scale-95', 'opacity-0');
-          }, 10);
-        } else {
-          submissionFeed.appendChild(buildEl);
-        }
+        // 新记录总是插入到最前面（最新的在上面）
+        submissionFeed.insertBefore(buildEl, submissionFeed.firstChild);
+        
+        // 添加新元素时的动画效果
+        buildEl.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => {
+          buildEl.classList.remove('scale-95', 'opacity-0');
+        }, 10);
         
          // 保持列表长度
          if (submissionFeed.children.length > 50) {
@@ -1167,7 +1292,7 @@
          }
          
          // 只有100%成功率才触发庆祝和更新排行榜
-         if (isFullSuccess) {
+         if (isFullSuccess && !skipCelebration) {
            // 所有用户成功提交都触发庆祝特效
            triggerCelebration(userInfo ? userInfo.userName : '未知用户');
            updateRankings();
@@ -1590,8 +1715,9 @@
         const totalUsers = users.length;
         
         if (totalUsers > 0) {
-          // 总体通过率 = 所有成员最好通过的用例数总和 / (总人数 × 20) × 100%
-          const overallRate = ((totalMaxPassedSum / (totalUsers * 20)) * 100).toFixed(1);
+          // 总体通过率 = 所有成员最好通过的用例数总和 / (总人数 × total_cases) × 100%
+          const totalCases = window.totalCases || 20; // 使用动态的总用例数
+          const overallRate = ((totalMaxPassedSum / (totalUsers * totalCases)) * 100).toFixed(1);
           document.getElementById('overall-pass-rate').textContent = `${overallRate}%`;
         }
       }
@@ -1605,9 +1731,29 @@
             if (result.code === 200 && result.data) {
               const stats = result.data;
               
+              // 设置比赛开始时间（用于计算时间差）
+              if (stats.startTime) {
+                window.competitionStartTime = stats.startTime;
+                console.log('定时更新设置比赛开始时间:', window.competitionStartTime);
+              }
+              
+              // 设置总用例数（用于计算通过率）
+              if (stats.totalCases) {
+                window.totalCases = stats.totalCases;
+                console.log('定时更新设置总用例数:', window.totalCases);
+              } else {
+                window.totalCases = 20; // 默认值
+                console.log('定时更新使用默认总用例数:', window.totalCases);
+              }
+              
         // 更新总体通过率
               if (stats.overallPassRate !== undefined) {
                 document.getElementById('overall-pass-rate').textContent = `${stats.overallPassRate}%`;
+              }
+              
+              // 更新总人数
+              if (stats.totalParticipants !== undefined) {
+                document.getElementById('total-participants').textContent = stats.totalParticipants;
               }
               
               // 更新AI组数据
@@ -1615,7 +1761,10 @@
                 document.getElementById('ai-group-count').textContent = stats.aiTotalCount;
               }
               if (stats.aiPassRate !== undefined) {
-                document.getElementById('ai-pass-rate').textContent = `${stats.aiPassRate}%`;
+                const aiPassRateFormatted = stats.aiPassRate.toFixed(2);
+                document.getElementById('ai-pass-rate').textContent = `${aiPassRateFormatted}%`;
+                // 同时更新实时通过率对比中的AI组通过率
+                document.getElementById('vs-ai-rate').textContent = `${aiPassRateFormatted}%`;
               }
               if (stats.aiAverageTime !== undefined) {
                 document.getElementById('ai-average-time').textContent = stats.aiAverageTime;
@@ -1626,10 +1775,18 @@
                 document.getElementById('nonai-group-count').textContent = stats.nonAiTotalCount;
               }
               if (stats.nonAiPassRate !== undefined) {
-                document.getElementById('nonai-pass-rate').textContent = `${stats.nonAiPassRate}%`;
+                const nonAiPassRateFormatted = stats.nonAiPassRate.toFixed(2);
+                document.getElementById('nonai-pass-rate').textContent = `${nonAiPassRateFormatted}%`;
+                // 同时更新实时通过率对比中的非AI组通过率
+                document.getElementById('vs-nonai-rate').textContent = `${nonAiPassRateFormatted}%`;
               }
               if (stats.nonAiAverageTime !== undefined) {
                 document.getElementById('nonai-average-time').textContent = stats.nonAiAverageTime;
+              }
+              
+              // 更新对比进度条
+              if (stats.aiPassRate !== undefined && stats.nonAiPassRate !== undefined) {
+                updateVersusBar(stats.aiPassRate, stats.nonAiPassRate);
               }
               
               // 更新图表数据
@@ -1672,14 +1829,36 @@
         }
       }
       
-      // 从API更新TOP3数据
+      // 从API更新TOP3数据（现在从所有提交记录中提取TOP3）
       async function updateTop3FromAPI() {
         try {
-          const response = await fetch('/api/submission/top3');
+          const response = await fetch('/api/submission/all');
           if (response.ok) {
             const result = await response.json();
             if (result.code === 200 && result.data) {
-              updateTop3Display(result.data);
+              // 从所有提交记录中提取TOP3（按提交时间升序，最早提交通过的在前面）
+              const allSubmissions = result.data;
+              const totalCases = window.totalCases || 20; // 使用动态的总用例数
+              const top3Submissions = allSubmissions
+                .filter(submission => submission.passed === totalCases) // 只取全部通过的
+                .sort((a, b) => new Date(a.submitTime) - new Date(b.submitTime)) // 按提交时间升序
+                .slice(0, 3); // 取前3个
+              
+              // 转换为UserRankDTO格式
+              const top3Data = top3Submissions.map(submission => {
+                const userInfo = getUserInfoById(submission.userId);
+                return {
+                  userId: submission.userId,
+                  username: userInfo ? userInfo.userName : '未知用户',
+                  groupType: userInfo ? userInfo.groupType : '未知',
+                  subGroup: userInfo ? userInfo.subGroup : '未知',
+                  submitTime: submission.submitTime,
+                  completionTime: submission.completionTime,
+                  passed: submission.passed
+                };
+              });
+              
+              updateTop3Display(top3Data);
               console.log('TOP3数据更新成功');
             }
           }
@@ -1711,12 +1890,63 @@
         }
       }
       
-      // 定时刷新所有实时数据
-      window.realTimeUpdateInterval = setInterval(() => {
-        if (!window.competitionEnded) {
-          updateAllRealTimeData();
+      // 定时刷新所有实时数据 - 已注释，用于测试WebSocket触发刷新
+      // window.realTimeUpdateInterval = setInterval(() => {
+      //   if (!window.competitionEnded) {
+      //     updateAllRealTimeData();
+      //   }
+      // }, 3000); // 每3秒刷新一次
+      
+      // WebSocket连接和监听
+      let stompClient = null;
+      
+      function initWebSocketConnection() {
+        console.log('正在初始化WebSocket连接...');
+        
+        try {
+          // 创建SockJS连接
+          const socket = new SockJS('/api/ws/competition');
+          console.log('SockJS连接对象创建成功');
+          
+          // 创建STOMP客户端
+          const client = Stomp.over(socket);
+          console.log('STOMP客户端创建成功');
+          
+          // 启用调试模式
+          client.debug = function(str) {
+            console.log('STOMP Debug:', str);
+          };
+          
+          // 连接WebSocket
+          client.connect({}, function(frame) {
+            console.log('WebSocket连接成功:', frame);
+            
+            // 将客户端赋值给全局变量
+            stompClient = client;
+            
+            // 订阅统计数据更新频道
+            const subscription = client.subscribe('/topic/stats', function(message) {
+              console.log('收到WebSocket刷新信号:', message.body);
+              
+              if (message.body === 'refresh') {
+                console.log('触发页面数据刷新...');
+                // 调用数据刷新函数
+                updateAllRealTimeData();
+              }
+            });
+            
+            console.log('WebSocket订阅成功，等待刷新信号...', subscription);
+            
+          }, function(error) {
+            console.error('WebSocket连接失败:', error);
+            console.error('错误详情:', error.headers);
+            console.error('错误消息:', error.body);
+          });
+          
+        } catch (error) {
+          console.error('WebSocket初始化失败:', error);
         }
-      }, 3000); // 每3秒刷新一次
+      }
       
       // 存储成功构建的时间总和（用于计算平均通过时间）
       let aiSuccessTimeTotal = 37 * (2 * 60 + 18); // 初始数据计算
@@ -2154,6 +2384,21 @@
       
       // 更新比赛统计数据
       function updateCompetitionStats(stats) {
+        // 设置比赛开始时间（用于计算时间差）
+        if (stats.startTime) {
+          window.competitionStartTime = stats.startTime;
+          console.log('设置比赛开始时间:', window.competitionStartTime);
+        }
+        
+        // 设置总用例数（用于计算通过率）
+        if (stats.totalCases) {
+          window.totalCases = stats.totalCases;
+          console.log('设置总用例数:', window.totalCases);
+        } else {
+          window.totalCases = 20; // 默认值
+          console.log('使用默认总用例数:', window.totalCases);
+        }
+        
         // 更新总体通过率
         if (stats.overallPassRate !== null && stats.overallPassRate !== undefined) {
           document.getElementById('overall-pass-rate').textContent = `${stats.overallPassRate.toFixed(1)}%`;
@@ -2786,9 +3031,10 @@
       if (window.countdownInterval) {
         clearInterval(window.countdownInterval);
       }
-      if (window.realTimeUpdateInterval) {
-        clearInterval(window.realTimeUpdateInterval);
-      }
+      // 注释掉定时刷新后，realTimeUpdateInterval可能未定义
+      // if (window.realTimeUpdateInterval) {
+      //   clearInterval(window.realTimeUpdateInterval);
+      // }
       
       // 显示比赛结束庆祝效果
       if (typeof window.showCompetitionEndCelebration === 'function') {

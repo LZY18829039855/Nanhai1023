@@ -26,6 +26,16 @@ public class CompetitionStatsDTO {
     private String status;
     
     /**
+     * 比赛开始时间
+     */
+    private String startTime;
+    
+    /**
+     * 总用例数
+     */
+    private Integer totalCases;
+    
+    /**
      * 剩余时间（秒）
      */
     private Integer remainingTime;

@@ -29,9 +29,9 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
     List<Submission> findByPassedGreaterThanEqual(Integer minPassed);
     
     /**
-     * 根据通过用例数查找提交记录，按完成时间升序排序
+     * 根据通过用例数查找提交记录，按提交时间升序排序（最早提交通过的在最上面）
      */
-    List<Submission> findByPassedOrderByCompletionTimeAsc(Integer passed);
+    List<Submission> findByPassedOrderBySubmitTimeAsc(Integer passed);
     
     /**
      * 根据完成时间范围查找提交记录
@@ -110,57 +110,87 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
         Long getSubGroupMaxPassedSum(String subGroup);
         
         /**
-         * 获取AI组全部通过（通过数为20）的平均用时
+         * 获取AI组全部通过的平均用时
+         * 每个用户只取最早提交通过的时间，计算从比赛开始到提交的时间差
          */
-        @Query(value = "SELECT AVG(s.completion_time) FROM submissions s " +
+        @Query(value = "SELECT AVG(TIMESTAMPDIFF(SECOND, c.start_time, min_submit_time)) FROM (" +
+               "SELECT MIN(s.submit_time) as min_submit_time " +
+               "FROM submissions s " +
                "INNER JOIN user_info u ON s.user_id = u.id " +
-               "WHERE u.group_type = 'AI组' AND s.passed = 20", nativeQuery = true)
-        Double getAiGroupFullPassAverageTime();
+               "WHERE u.group_type = 'AI组' AND s.passed = ?1 " +
+               "GROUP BY s.user_id" +
+               ") as user_min_times, competitions c " +
+               "WHERE c.id = 1", nativeQuery = true)
+        Double getAiGroupFullPassAverageTime(Integer totalCases);
         
         /**
-         * 获取非AI组全部通过（通过数为20）的平均用时
+         * 获取非AI组全部通过的平均用时
+         * 每个用户只取最早提交通过的时间，计算从比赛开始到提交的时间差
          */
-        @Query(value = "SELECT AVG(s.completion_time) FROM submissions s " +
+        @Query(value = "SELECT AVG(TIMESTAMPDIFF(SECOND, c.start_time, min_submit_time)) FROM (" +
+               "SELECT MIN(s.submit_time) as min_submit_time " +
+               "FROM submissions s " +
                "INNER JOIN user_info u ON s.user_id = u.id " +
-               "WHERE u.group_type = '非AI组' AND s.passed = 20", nativeQuery = true)
-        Double getNonAiGroupFullPassAverageTime();
+               "WHERE u.group_type = '非AI组' AND s.passed = ?1 " +
+               "GROUP BY s.user_id" +
+               ") as user_min_times, competitions c " +
+               "WHERE c.id = 1", nativeQuery = true)
+        Double getNonAiGroupFullPassAverageTime(Integer totalCases);
         
         /**
-         * 获取指定小组中通过测试的人数（通过用例数为20的人数）
+         * 获取指定小组中通过测试的人数（全部通过的人数）
          */
         @Query(value = "SELECT COUNT(DISTINCT s.user_id) FROM submissions s " +
                "INNER JOIN user_info u ON s.user_id = u.id " +
-               "WHERE u.sub_group = ?1 AND s.passed = 20", nativeQuery = true)
-        Long getSubGroupFullPassUserCount(String subGroup);
+               "WHERE u.sub_group = ?1 AND s.passed = ?2", nativeQuery = true)
+        Long getSubGroupFullPassUserCount(String subGroup, Integer totalCases);
         
         /**
-         * 获取指定小组中全部通过（通过用例数为20）的平均用时
+         * 获取指定小组中全部通过的平均用时
+         * 每个用户只取最早提交通过的时间，计算从比赛开始到提交的时间差
          */
-        @Query(value = "SELECT AVG(s.completion_time) FROM submissions s " +
+        @Query(value = "SELECT AVG(TIMESTAMPDIFF(SECOND, c.start_time, min_submit_time)) FROM (" +
+               "SELECT MIN(s.submit_time) as min_submit_time " +
+               "FROM submissions s " +
                "INNER JOIN user_info u ON s.user_id = u.id " +
-               "WHERE u.sub_group = ?1 AND s.passed = 20", nativeQuery = true)
-        Double getSubGroupFullPassAverageTime(String subGroup);
+               "WHERE u.sub_group = ?1 AND s.passed = ?2 " +
+               "GROUP BY s.user_id" +
+               ") as user_min_times, competitions c " +
+               "WHERE c.id = 1", nativeQuery = true)
+        Double getSubGroupFullPassAverageTime(String subGroup, Integer totalCases);
     
     /**
      * 获取指定小组的用户数量
      */
     @Query("SELECT COUNT(u) FROM UserInfo u WHERE u.subGroup = ?1 AND u.isDeleted = 'N'")
     Long countBySubGroup(String subGroup);
-
+    
     /**
-     * 按组别获取全部通过（passed=20）人员最早用时（每人一条，按用时升序）
+     * 按组别获取全部通过（passed=20）人员最早提交时间（每人一条，按提交时间升序）
      */
-    @Query(value = "SELECT s.user_id, MIN(s.completion_time) AS min_time, MIN(s.submit_time) AS min_submit_time " +
-           "FROM submissions s " +
-           "INNER JOIN user_info u ON s.user_id = u.id " +
-           "WHERE u.group_type = ?1 AND s.passed = 20 " +
-           "GROUP BY s.user_id " +
-           "ORDER BY min_time ASC", nativeQuery = true)
-    List<Object[]> findFullPassUsersByGroup(String groupType);
+        @Query(value = "SELECT s.user_id, MIN(s.completion_time) AS min_time, MIN(s.submit_time) AS min_submit_time " +
+               "FROM submissions s " +
+               "INNER JOIN user_info u ON s.user_id = u.id " +
+               "WHERE u.group_type = ?1 AND s.passed = ?2 " +
+               "GROUP BY s.user_id " +
+               "ORDER BY min_submit_time ASC", nativeQuery = true)
+        List<Object[]> findFullPassUsersByGroup(String groupType, Integer totalCases);
     
     /**
      * 获取最近的提交记录（按提交时间降序）
      */
     List<Submission> findTop10ByOrderBySubmitTimeDesc();
+    
+    /**
+     * 获取最近的提交记录（按提交时间降序，可指定数量）
+     */
+    @Query("SELECT s FROM Submission s ORDER BY s.submitTime DESC")
+    List<Submission> findRecentSubmissionsOrderBySubmitTimeDesc();
+    
+    /**
+     * 获取所有提交记录（按提交时间降序排列，最晚的在最上面）
+     */
+    @Query("SELECT s FROM Submission s ORDER BY s.submitTime DESC")
+    List<Submission> findAllOrderBySubmitTimeDesc();
 }
 

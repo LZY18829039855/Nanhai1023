@@ -51,6 +51,7 @@ public class CompetitionServiceImpl implements CompetitionService {
                 .orElseGet(() -> {
                     Competition competition = new Competition();
                     competition.setStartTime(LocalDateTime.now());
+                    competition.setTotalCases(20); // 默认总用例数为20
                     return competitionRepository.save(competition);
                 });
     }
@@ -65,6 +66,11 @@ public class CompetitionServiceImpl implements CompetitionService {
         stats.setCompetitionName("AI编程大赛");
         stats.setStatus("RUNNING");
         stats.setRemainingTime(0); // 简化处理，不计算剩余时间
+        stats.setStartTime(competition.getStartTime().toString()); // 设置比赛开始时间
+
+        // 获取总用例数
+        Integer totalCases = competition.getTotalCases() != null ? competition.getTotalCases() : 20;
+        stats.setTotalCases(totalCases); // 设置总用例数到返回的DTO中
 
         // 从user_info表获取用户统计（仅未删除的用户）
         Long totalUsers = userInfoRepository.countByIsDeleted("N");
@@ -73,32 +79,32 @@ public class CompetitionServiceImpl implements CompetitionService {
         
         stats.setTotalParticipants(totalUsers.intValue());
         
-        // 计算总体通过率：所有成员最好通过的用例数总和 / (总人数 × 20)
+        // 计算总体通过率：所有成员最好通过的用例数总和 / (总人数 × total_cases)
         Long allUsersMaxPassedSum = submissionRepository.getAllUsersMaxPassedSum();
-        double overallPassRate = totalUsers > 0 ? (allUsersMaxPassedSum.doubleValue() / (totalUsers * 20)) * 100 : 0.0;
+        double overallPassRate = totalUsers > 0 ? (allUsersMaxPassedSum.doubleValue() / (totalUsers * totalCases)) * 100 : 0.0;
         stats.setOverallPassRate(Math.round(overallPassRate * 100.0) / 100.0); // 保留两位小数
         
         // AI组统计
         stats.setAiTotalCount(aiGroupUsers.intValue());
-        // 计算AI组通过率：AI组所有成员最好通过的用例数总和 / (AI组成员总数 × 20)
+        // 计算AI组通过率：AI组所有成员最好通过的用例数总和 / (AI组成员总数 × total_cases)
         Long aiGroupMaxPassedSum = submissionRepository.getAiGroupMaxPassedSum();
-        double aiPassRate = aiGroupUsers > 0 ? (aiGroupMaxPassedSum.doubleValue() / (aiGroupUsers * 20)) * 100 : 0.0;
+        double aiPassRate = aiGroupUsers > 0 ? (aiGroupMaxPassedSum.doubleValue() / (aiGroupUsers * totalCases)) * 100 : 0.0;
         stats.setAiPassRate(Math.round(aiPassRate * 100.0) / 100.0); // 保留两位小数
         stats.setAiSubmissionRate(0.0); // Placeholder
         stats.setAiSuccessCount(aiGroupMaxPassedSum.intValue());
         
         // 非AI组统计
         stats.setNonAiTotalCount(nonAiGroupUsers.intValue());
-        // 计算非AI组通过率：非AI组所有成员最好通过的用例数总和 / (非AI组成员总数 × 20)
+        // 计算非AI组通过率：非AI组所有成员最好通过的用例数总和 / (非AI组成员总数 × total_cases)
         Long nonAiGroupMaxPassedSum = submissionRepository.getNonAiGroupMaxPassedSum();
-        double nonAiPassRate = nonAiGroupUsers > 0 ? (nonAiGroupMaxPassedSum.doubleValue() / (nonAiGroupUsers * 20)) * 100 : 0.0;
+        double nonAiPassRate = nonAiGroupUsers > 0 ? (nonAiGroupMaxPassedSum.doubleValue() / (nonAiGroupUsers * totalCases)) * 100 : 0.0;
         stats.setNonAiPassRate(Math.round(nonAiPassRate * 100.0) / 100.0); // 保留两位小数
         stats.setNonAiSubmissionRate(0.0); // Placeholder
         stats.setNonAiSuccessCount(nonAiGroupMaxPassedSum.intValue());
         
-            // 平均完成时间 - 计算全部通过（通过数为20）的平均用时
-            Double aiAvgTime = submissionRepository.getAiGroupFullPassAverageTime();
-            Double nonAiAvgTime = submissionRepository.getNonAiGroupFullPassAverageTime();
+            // 平均完成时间 - 计算全部通过的平均用时
+            Double aiAvgTime = submissionRepository.getAiGroupFullPassAverageTime(totalCases);
+            Double nonAiAvgTime = submissionRepository.getNonAiGroupFullPassAverageTime(totalCases);
             stats.setAiAverageTime(formatTime(aiAvgTime));
             stats.setNonAiAverageTime(formatTime(nonAiAvgTime));
         
@@ -117,15 +123,15 @@ public class CompetitionServiceImpl implements CompetitionService {
             
             Long subGroupUserCount = userInfoRepository.countBySubGroup(subGroup);
             Long subGroupMaxPassedSum = submissionRepository.getSubGroupMaxPassedSum(subGroup);
-            Long subGroupFullPassUserCount = submissionRepository.getSubGroupFullPassUserCount(subGroup);
-            Double subGroupAverageTime = submissionRepository.getSubGroupFullPassAverageTime(subGroup);
+            Long subGroupFullPassUserCount = submissionRepository.getSubGroupFullPassUserCount(subGroup, totalCases);
+            Double subGroupAverageTime = submissionRepository.getSubGroupFullPassAverageTime(subGroup, totalCases);
             
             subGroupStat.setUserCount(subGroupUserCount.intValue());
             subGroupStat.setPassedCount(subGroupFullPassUserCount.intValue()); // 改为显示通过人数
             
-            // 计算小组通过率：小组内各成员的最好通过用例数之和 / (小组总人数 × 20)
+            // 计算小组通过率：小组内各成员的最好通过用例数之和 / (小组总人数 × total_cases)
             double subGroupPassRate = subGroupUserCount > 0 ? 
-                (subGroupMaxPassedSum.doubleValue() / (subGroupUserCount * 20)) * 100 : 0.0;
+                (subGroupMaxPassedSum.doubleValue() / (subGroupUserCount * totalCases)) * 100 : 0.0;
             subGroupStat.setPassRate(Math.round(subGroupPassRate * 100.0) / 100.0);
             
             // 设置平均完成时间
@@ -147,15 +153,15 @@ public class CompetitionServiceImpl implements CompetitionService {
             
             Long subGroupUserCount = userInfoRepository.countBySubGroup(subGroup);
             Long subGroupMaxPassedSum = submissionRepository.getSubGroupMaxPassedSum(subGroup);
-            Long subGroupFullPassUserCount = submissionRepository.getSubGroupFullPassUserCount(subGroup);
-            Double subGroupAverageTime = submissionRepository.getSubGroupFullPassAverageTime(subGroup);
+            Long subGroupFullPassUserCount = submissionRepository.getSubGroupFullPassUserCount(subGroup, totalCases);
+            Double subGroupAverageTime = submissionRepository.getSubGroupFullPassAverageTime(subGroup, totalCases);
             
             subGroupStat.setUserCount(subGroupUserCount.intValue());
             subGroupStat.setPassedCount(subGroupFullPassUserCount.intValue()); // 改为显示通过人数
             
-            // 计算小组通过率：小组内各成员的最好通过用例数之和 / (小组总人数 × 20)
+            // 计算小组通过率：小组内各成员的最好通过用例数之和 / (小组总人数 × total_cases)
             double subGroupPassRate = subGroupUserCount > 0 ? 
-                (subGroupMaxPassedSum.doubleValue() / (subGroupUserCount * 20)) * 100 : 0.0;
+                (subGroupMaxPassedSum.doubleValue() / (subGroupUserCount * totalCases)) * 100 : 0.0;
             subGroupStat.setPassRate(Math.round(subGroupPassRate * 100.0) / 100.0);
             
             // 设置平均完成时间

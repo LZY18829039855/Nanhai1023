@@ -22,5 +22,11 @@ public class Competition {
      */
     @Column
     private LocalDateTime startTime;
+
+    /**
+     * 总用例数
+     */
+    @Column
+    private Integer totalCases;
 }
 

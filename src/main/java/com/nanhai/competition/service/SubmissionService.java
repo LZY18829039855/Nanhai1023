@@ -60,16 +60,17 @@ public interface SubmissionService {
     /**
      * 查询构建任务记录
      * 
+     * @param submission 提交记录对象
      * @param buildPath 代码仓地址
      * @param branch 分支名称
      * @return 构建任务响应
      */
-    BuildJobResponseDTO queryBuildJob(String buildPath, String branch);
+    BuildJobResponseDTO queryBuildJob(Submission submission, String buildPath, String branch);
 
     /**
-     * 获取指定组别（AI组/非AI组）全部通过（passed=20）人员列表，按最早用时升序
+     * 获取指定组别（AI组/非AI组）全部通过人员列表，按最早用时升序
      */
-    List<UserRankDTO> getFullPassUsersByGroup(String groupType);
+    List<UserRankDTO> getFullPassUsersByGroup(String groupType, Integer totalCases);
     
     /**
      * 获取最近的提交记录（用于实时动态显示）
