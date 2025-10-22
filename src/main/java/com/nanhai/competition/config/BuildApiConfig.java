@@ -13,9 +13,14 @@ import org.springframework.context.annotation.Configuration;
 public class BuildApiConfig {
     
     /**
-     * 构建API基础URL
+     * 构建API基础URL（用于queryBuildJob和queryPackageRunByJobId）
      */
     private String baseUrl = "https://example.com/api/v1";
+    
+    /**
+     * 报告API基础URL（用于fetchReportSummary）
+     */
+    private String reportBaseUrl = "https://example.com/api/v1";
     
     /**
      * 查询构建记录的端点
@@ -55,7 +60,7 @@ public class BuildApiConfig {
      * 获取报告查询URL
      */
     public String getQueryReportUrl() {
-        return baseUrl + queryReportEndpoint;
+        return reportBaseUrl + queryReportEndpoint;
     }
 }
 
