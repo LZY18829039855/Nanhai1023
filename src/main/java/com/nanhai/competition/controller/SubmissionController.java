@@ -14,6 +14,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 /**
  * 提交记录控制器
@@ -150,9 +152,20 @@ public class SubmissionController {
         JSONObject jsonObject = JSONObject.parseObject(body);
         
         // 获取git_batch和user_username字段
-        String gitBatch = jsonObject.getString("git_batch");
+        String gitBatch = jsonObject.getString("git_branch");
         String userUsername = jsonObject.getString("user_username");
+        String webUrl = jsonObject.getJSONObject("project").getString("web_url");
         
+        String codehubRepo = "";
+        Pattern pattern = Pattern.compile("huawei.com/(.+)");
+        Matcher matcher = pattern.matcher(webUrl);
+
+        if (matcher.find()) {
+            codehubRepo = matcher.group(1);
+        } else {
+            codehubRepo = "innersource/fuyao_G/CodeAgent/Permission";
+        }
+
         // 封装到DTO
         BuildTriggerDTO dto = new BuildTriggerDTO();
         dto.setGitBatch(gitBatch);
@@ -189,12 +202,12 @@ public class SubmissionController {
         Submission submission = new Submission();
         submission.setUserId(userId);
         submission.setBranch(gitBatch); // 使用git_batch作为分支名称
-        submission.setPassed(0); // 初始通过用例数为0
         submission.setCompletionTime(0); // 初始完成时间为0
         submission.setSubmitTime(java.time.LocalDateTime.now()); // 设置提交时间为当前时间
         
         // 调用查询构建记录方法，传入Submission对象
-        submissionService.queryBuildJob(submission, "https://github.com/example/repo.git", gitBatch);
+        submissionService.queryBuildJob(submission, "codehub-open.huawei.com", gitBatch);
+        
         
         return ApiResponse.success("构建触发信息接收成功", dto);
     }

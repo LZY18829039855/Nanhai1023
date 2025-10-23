@@ -1,7 +1,6 @@
 package com.nanhai.competition.service;
 
 import com.nanhai.competition.dto.UserInfoDTO;
-import com.nanhai.competition.entity.UserInfo;
 
 import java.util.List;
 

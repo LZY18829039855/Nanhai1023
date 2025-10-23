@@ -12,7 +12,6 @@ import com.nanhai.competition.entity.UserInfo;
 import com.nanhai.competition.repository.SubmissionRepository;
 import com.nanhai.competition.repository.UserInfoRepository;
 import com.nanhai.competition.service.SubmissionService;
-import com.nanhai.competition.service.CompetitionService;
 import com.nanhai.competition.websocket.CompetitionWebSocketHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -57,7 +56,6 @@ public class SubmissionServiceImpl implements SubmissionService {
     private final RestTemplate restTemplate;
     private final BuildApiConfig buildApiConfig;
     private final CompetitionWebSocketHandler webSocketHandler;
-    private final CompetitionService competitionService;
 
     @Override
     @Transactional
@@ -263,12 +261,9 @@ public class SubmissionServiceImpl implements SubmissionService {
                     String.class
                 );
                 
-                if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null && !response.getBody().trim().startsWith("{\"error\":}")) {
+                String responseBody = response.getBody();
+                if (response.getStatusCode().is2xxSuccessful() && responseBody != null && !responseBody.trim().startsWith("{\"error\":}")) {
                     int passed = 0;
-                    String responseBody = response.getBody();
-                    if (responseBody == null) {
-                        continue;
-                    }
                     if (name.endsWith(".xml")) {
                         try{
                             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
