@@ -395,7 +395,7 @@
          
          <div class="bg-dark/50 backdrop-blur-sm px-5 py-3 rounded-full border border-primary/20 flex items-center gap-2 hover:border-primary/40 transition-all duration-300">
            <i class="fa fa-users text-primary text-lg"></i>
-           <span class="text-base md:text-lg">参与总人数: <span class="text-white font-semibold text-lg md:text-xl" id="total-participants">加载中...</span></span>
+           <span class="text-base md:text-lg">参与总人数: <span class="text-white font-semibold text-lg md:text-xl" id="total-participants">--</span></span>
          </div>
         
         <!-- 新增：结束比赛按钮 -->
@@ -423,13 +423,13 @@
             <div class="flex items-center gap-2">
               <i class="fa fa-robot text-ai text-lg"></i>
               <span class="font-semibold text-ai text-base">AI组</span>
-              <span id="vs-ai-rate" class="text-2xl md:text-3xl font-bold text-ai">78.4%</span>
+              <span id="vs-ai-rate" class="text-2xl md:text-3xl font-bold text-ai">--</span>
             </div>
             <div class="flex items-center gap-2">
               <span class="text-gray-400 font-medium text-base">VS</span>
             </div>
             <div class="flex items-center gap-2">
-              <span id="vs-nonai-rate" class="text-2xl md:text-3xl font-bold text-nonai">62.8%</span>
+              <span id="vs-nonai-rate" class="text-2xl md:text-3xl font-bold text-nonai">--</span>
               <span class="font-semibold text-nonai text-base">非AI组</span>
             </div>
           </div>
@@ -482,7 +482,7 @@
             <i class="fa fa-robot mr-2"></i>AI组
           </h2>
           <span class="bg-ai/10 text-ai px-3 py-1 rounded-full text-sm font-medium">
-            本组总人数: <span id="ai-group-count">40</span>
+            本组总人数: <span id="ai-group-count">--</span>
           </span>
         </div>
         
@@ -491,7 +491,7 @@
           <div class="flex justify-between items-end mb-2">
             <div>
               <p class="text-gray-400 text-sm">AI组通过率</p>
-              <p class="text-3xl md:text-4xl font-bold text-ai text-shadow" id="ai-pass-rate">78.4%</p>
+              <p class="text-3xl md:text-4xl font-bold text-ai text-shadow" id="ai-pass-rate">--</p>
             </div>
           </div>
           
@@ -505,7 +505,7 @@
         <div class="relative z-10 grid grid-cols-2 gap-4 mb-6">
           <div class="bg-dark/60 p-3 rounded-xl border border-ai/10 col-span-2">
             <h3 class="text-xs text-gray-400 mb-1">平均通过时间</h3>
-            <p class="text-xl font-semibold text-ai" id="ai-average-time">加载中...</p>
+            <p class="text-xl font-semibold text-ai" id="ai-average-time">--</p>
           </div>
         </div>
         
@@ -619,7 +619,7 @@
             <i class="fa fa-user mr-2"></i>非AI组
           </h2>
           <span class="bg-nonai/10 text-nonai px-3 py-1 rounded-full text-sm font-medium">
-            本组总人数: <span id="nonai-group-count">20</span>
+            本组总人数: <span id="nonai-group-count">--</span>
           </span>
         </div>
         
@@ -628,7 +628,7 @@
           <div class="flex justify-between items-end mb-2">
             <div>
               <p class="text-gray-400 text-sm">非AI组通过率</p>
-              <p class="text-3xl md:text-4xl font-bold text-nonai text-shadow" id="nonai-pass-rate">62.8%</p>
+              <p class="text-3xl md:text-4xl font-bold text-nonai text-shadow" id="nonai-pass-rate">--</p>
             </div>
           </div>
           
@@ -642,7 +642,7 @@
         <div class="relative z-10 grid grid-cols-2 gap-4 mb-6">
           <div class="bg-dark/60 p-3 rounded-xl border border-nonai/10 col-span-2">
             <h3 class="text-xs text-gray-400 mb-1">平均通过时间</h3>
-            <p class="text-xl font-semibold text-nonai" id="nonai-average-time">加载中...</p>
+            <p class="text-xl font-semibold text-nonai" id="nonai-average-time">--</p>
           </div>
         </div>
         
@@ -786,11 +786,39 @@
       // 倒计时不自动开始，等待用户点击开始比赛按钮
       
       // 开始比赛功能
-      function startCompetition() {
+      async function startCompetition() {
         if (competitionStarted) return; // 防止重复开始
         
         competitionStarted = true;
         console.log('比赛开始！');
+        
+        // 调用后端接口更新比赛开始时间
+        try {
+          const response = await fetch('/nanhai/api/competition/start', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            const result = await response.json();
+            if (result.code === 200) {
+              console.log('比赛开始时间已更新到数据库:', result.data);
+              // 更新页面中的比赛开始时间
+              if (result.data && result.data.startTime) {
+                window.competitionStartTime = new Date(result.data.startTime);
+                console.log('页面比赛开始时间已更新:', window.competitionStartTime);
+              }
+            } else {
+              console.error('更新比赛开始时间失败:', result.message);
+            }
+          } else {
+            console.error('调用比赛开始接口失败:', response.status);
+          }
+        } catch (error) {
+          console.error('调用比赛开始接口异常:', error);
+        }
         
         // 将开始比赛按钮置灰并禁用
         const startBtn = document.getElementById('start-competition-container');
@@ -876,7 +904,7 @@
       // 初始化用户数据
       async function initUserData() {
         try {
-          const response = await fetch('/api/user-info');
+          const response = await fetch('/nanhai/api/user-info');
           if (!response.ok) {
             console.warn('无法获取用户数据，使用模拟数据');
             initDemoUsers();
@@ -1188,7 +1216,7 @@
         async function loadRecentSubmissions() {
           try {
             // 获取所有提交记录
-            const response = await fetch('/api/submission/all');
+            const response = await fetch('/nanhai/api/submission/all');
             if (response.ok) {
               const result = await response.json();
               if (result.code === 200 && result.data) {
@@ -1717,9 +1745,16 @@
             top1GroupEl.textContent = groupText;
           }
           
-          // 更新第一名时间
+          // 更新第一名时间 - 显示提交时间
           if (top1.finishTime) {
-            document.querySelector('#realtime-top1-time').textContent = top1.finishTime;
+            // 将finishTime转换为提交时间格式显示
+            const submitTime = new Date(top1.finishTime);
+            const timeString = submitTime.toLocaleTimeString('zh-CN', { 
+              hour: '2-digit', 
+              minute: '2-digit', 
+              second: '2-digit' 
+            });
+            document.querySelector('#realtime-top1-time').textContent = timeString;
           }
         }
         
@@ -1740,9 +1775,16 @@
             top2GroupEl.textContent = groupText;
           }
           
-          // 更新第二名时间
+          // 更新第二名时间 - 显示提交时间
           if (top2.finishTime) {
-            document.querySelector('#realtime-top2-time').textContent = top2.finishTime;
+            // 将finishTime转换为提交时间格式显示
+            const submitTime = new Date(top2.finishTime);
+            const timeString = submitTime.toLocaleTimeString('zh-CN', { 
+              hour: '2-digit', 
+              minute: '2-digit', 
+              second: '2-digit' 
+            });
+            document.querySelector('#realtime-top2-time').textContent = timeString;
           }
         }
         
@@ -1763,9 +1805,16 @@
             top3GroupEl.textContent = groupText;
           }
           
-          // 更新第三名时间
+          // 更新第三名时间 - 显示提交时间
           if (top3.finishTime) {
-            document.querySelector('#realtime-top3-time').textContent = top3.finishTime;
+            // 将finishTime转换为提交时间格式显示
+            const submitTime = new Date(top3.finishTime);
+            const timeString = submitTime.toLocaleTimeString('zh-CN', { 
+              hour: '2-digit', 
+              minute: '2-digit', 
+              second: '2-digit' 
+            });
+            document.querySelector('#realtime-top3-time').textContent = timeString;
           }
         }
         
@@ -1838,7 +1887,7 @@
       // 从API更新比赛统计数据
       async function updateCompetitionStatsFromAPI() {
         try {
-          const response = await fetch('/api/competition/current-stats');
+          const response = await fetch('/nanhai/api/competition/current-stats');
           if (response.ok) {
             const result = await response.json();
             if (result.code === 200 && result.data) {
@@ -1915,7 +1964,7 @@
       async function updateFullPassUsersFromAPI() {
         try {
           // 更新AI组通过人员
-          const aiResponse = await fetch('/api/submission/full-pass?groupType=AI组');
+          const aiResponse = await fetch('/nanhai/api/submission/full-pass?groupType=AI组');
           if (aiResponse.ok) {
             const aiResult = await aiResponse.json();
             if (aiResult.code === 200 && aiResult.data) {
@@ -1924,7 +1973,7 @@
           }
           
           // 更新非AI组通过人员
-          const nonAiResponse = await fetch('/api/submission/full-pass?groupType=非AI组');
+          const nonAiResponse = await fetch('/nanhai/api/submission/full-pass?groupType=非AI组');
           if (nonAiResponse.ok) {
             const nonAiResult = await nonAiResponse.json();
             if (nonAiResult.code === 200 && nonAiResult.data) {
@@ -1941,7 +1990,7 @@
       // 从API更新TOP3数据（现在从所有提交记录中提取TOP3，支持去重）
       async function updateTop3FromAPI() {
         try {
-          const response = await fetch('/api/submission/all');
+          const response = await fetch('/nanhai/api/submission/all');
           if (response.ok) {
             const result = await response.json();
             if (result.code === 200 && result.data) {
@@ -2035,7 +2084,7 @@
         
         try {
           // 创建SockJS连接
-          const socket = new SockJS('/api/ws/competition');
+          const socket = new SockJS('/nanhai/api/ws/competition');
           console.log('SockJS连接对象创建成功');
           
           // 创建STOMP客户端
@@ -2404,7 +2453,7 @@
       async function initCompetitionStats() {
         try {
           console.log('开始获取比赛统计数据...');
-          const response = await fetch('/api/competition/current-stats');
+          const response = await fetch('/nanhai/api/competition/current-stats');
           console.log('API响应状态:', response.status);
           
           if (response.ok) {
@@ -2433,8 +2482,8 @@
           
           // 并行获取AI组和非AI组的全部通过人员
           const [aiResponse, nonAiResponse] = await Promise.all([
-            fetch('/api/submission/full-pass?groupType=AI组'),
-            fetch('/api/submission/full-pass?groupType=非AI组')
+            fetch('/nanhai/api/submission/full-pass?groupType=AI组'),
+            fetch('/nanhai/api/submission/full-pass?groupType=非AI组')
           ]);
           
           if (aiResponse.ok && nonAiResponse.ok) {
@@ -2654,10 +2703,8 @@
       // 初始化图表
       initCharts();
       
-      // 初始化对比进度条（使用当前显示的通过率）
-      const initialAiRate = parseFloat(document.getElementById('ai-pass-rate').textContent) || 78.4;
-      const initialNonaiRate = parseFloat(document.getElementById('nonai-pass-rate').textContent) || 62.8;
-      updateVersusBar(initialAiRate, initialNonaiRate);
+      // 初始化对比进度条（等待数据加载后再更新）
+      // 不设置默认值，等待API数据加载
       
       // 添加滚动动画
       const scrollContainer = document.querySelector('.scroll-container');
@@ -2786,7 +2833,7 @@
         console.log('当前competitionEnded状态:', window.competitionEnded);
         
         // 从后端获取最新的统计数据
-        fetch('/api/competition/current-stats')
+        fetch('/nanhai/api/competition/current-stats')
           .then(response => response.json())
           .then(data => {
             if (data.code === 200 && data.data) {

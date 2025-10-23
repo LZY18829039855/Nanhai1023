@@ -1,7 +1,7 @@
 server:
   port: 8080
   servlet:
-    context-path: /api
+    context-path: /nanhai/api
     encoding:
       charset: UTF-8
       enabled: true
@@ -97,11 +97,11 @@ competition:
 build:
   api:
     # queryBuildJob和queryPackageRunByJobId使用的基础URL
-    base-url: https://backed.pipeline-x.rnd.huawei.com/api/v1
+    base-url: https://backend.pipeline-x.rnd.huawei.com/api/v1
     # fetchReportSummary使用的基础URL
-    report-base-url: http://backed.pipeline-x.inhuawei.com/api/v1
+    report-base-url: http://backend.pipeline-x.inhuawei.com/api/v1
     query-job-endpoint: /data-api/pipeline-history
     query-package-run-endpoint: /build/artifact-chain-output-cache
     query-report-endpoint: /data-api/report-fail
-    private-token: cccc
+    private-token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImwwMDg0NTU1OSIsImlhdCI6MTcwMDUzODQzOCwiaXNzIjoicGlwZWxpbmUteCJ9.aESuLIvFuiTT8VY_NiTfHcVaW3ZXWbt2z4wqIIecrRk
 

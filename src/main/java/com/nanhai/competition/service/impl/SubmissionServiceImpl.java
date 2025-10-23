@@ -12,6 +12,7 @@ import com.nanhai.competition.entity.UserInfo;
 import com.nanhai.competition.repository.SubmissionRepository;
 import com.nanhai.competition.repository.UserInfoRepository;
 import com.nanhai.competition.service.SubmissionService;
+import com.nanhai.competition.service.CompetitionService;
 import com.nanhai.competition.websocket.CompetitionWebSocketHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,6 +42,7 @@ public class SubmissionServiceImpl implements SubmissionService {
     private final RestTemplate restTemplate;
     private final BuildApiConfig buildApiConfig;
     private final CompetitionWebSocketHandler webSocketHandler;
+    private final CompetitionService competitionService;
 
     @Override
     @Transactional
@@ -102,12 +104,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         log.info("开始查询构建任务 - submission: {}, buildPath: {}, branch: {}", submission, buildPath, branch);
         
         try {
-            // 保存提交记录到数据库
-            if (submission != null) {
-                submissionRepository.save(submission);
-                log.info("提交记录已保存到数据库: {}", submission);
-            }
-            
+
             // 调用外部API获取构建任务信息，支持轮询机制
             String jobId = queryBuildJobWithPolling(buildPath, branch);
             
@@ -121,53 +118,7 @@ public class SubmissionServiceImpl implements SubmissionService {
             
             // 返回结果
             BuildJobResponseDTO result = new BuildJobResponseDTO();
-            // BuildJobResponseDTO 没有 setCode 和 setMessage 方法，直接返回空对象
-            
-            /* 原始外部API调用代码 - 已重构为轮询机制
-            // 构建请求URL，添加查询参数
-            String url = UriComponentsBuilder
-                    .fromHttpUrl(buildApiConfig.getQueryJobUrl())
-                    .queryParam("build_path", buildPath)
-                    .queryParam("branch", branch)
-                    .toUriString();
-            
-            log.info("请求URL: {}", url);
-            
-            // 设置请求头
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("PRIVATE-TOKEN", buildApiConfig.getPrivateToken());
-            headers.set("Content-Type", "application/json");
-            
-            // 创建请求实体
-            HttpEntity<String> entity = new HttpEntity<>(headers);
-            
-            // 发送GET请求
-            ResponseEntity<String> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.GET,
-                    entity,
-                    String.class
-            );
-            
-            // 记录响应
-            log.info("响应状态码: {}", response.getStatusCode());
-            log.info("响应内容: {}", response.getBody());
-            
-            // 解析响应为DTO
-            BuildJobResponseDTO result = JSON.parseObject(response.getBody(), BuildJobResponseDTO.class);
-            
-            // 提取job_id
-            if (result != null && result.getInfo() != null && !result.getInfo().isEmpty()) {
-                for (BuildJobResponseDTO.JobInfo jobInfo : result.getInfo()) {
-                    String jobId = jobInfo.getJobId();
-                    log.info("获取到job_id: {}", jobId);
-                    // 通过job_id调用BBBB接口查询语言/包运行结果
-                    queryPackageRunByJobId(submission, jobId);
-                }
-            } else {
-                log.warn("未获取到构建任务信息");
-            }
-            */
+
             
             return result;
             
@@ -234,18 +185,24 @@ public class SubmissionServiceImpl implements SubmissionService {
     /**
      * 调用第三个接口获取报告汇总（通过率等）
      */
-    private void fetchReportSummary(Submission submission, String jobId, String packageName, String name) {
+    private void fetchReportSummary(Submission submission, String packageName, String name) {
         try {
             // 暂时注释掉外部API调用，用于测试WebSocket功能
-            log.info("模拟调用报告接口查询summary - jobId: {}, packageName: {}, name: {}", jobId, packageName, name);
+            log.info("模拟调用报告接口查询summary -  packageName: {}, name: {}", jobId, packageName, name);
             
             // 模拟处理报告数据
             log.info("模拟处理报告数据完成");
             
             // 更新submission数据并保存到数据库
             if (submission != null) {
+                // 获取当前比赛的总用例数
+                Integer totalCases = competitionService.getCurrentCompetition().getTotalCases();
+                if (totalCases == null) {
+                    totalCases = 20; // 默认值
+                }
+                
                 // 模拟更新通过用例数和完成时间
-                submission.setPassed(20); // 模拟全部通过
+                submission.setPassed(totalCases); // 模拟全部通过，使用动态的总用例数
                 submission.setCompletionTime(120); // 模拟2分钟完成
                 submission.setSubmitTime(java.time.LocalDateTime.now()); // 更新提交时间
                 
