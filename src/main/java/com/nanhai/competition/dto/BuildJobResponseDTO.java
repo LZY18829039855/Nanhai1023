@@ -4,6 +4,8 @@ import lombok.Data;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * 构建任务响应DTO
  */
@@ -23,6 +25,7 @@ public class BuildJobResponseDTO {
         /**
          * 任务ID
          */
+        @JsonProperty(value = "job_id")
         private String jobId;
         
         // 可以根据实际响应添加更多字段

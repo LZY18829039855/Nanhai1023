@@ -24,7 +24,22 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.security.cert.X509Certificate;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.Comparator;
@@ -128,25 +143,39 @@ public class SubmissionServiceImpl implements SubmissionService {
         }
     }
 
+    public RestTemplate createRestTemplate() {
+        TrustManager[] trustAllCerts = new TrustManager[]{new X509TrustManager() {
+            public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                return null;
+            }
+
+            public void checkClientTrusted(X509Certificate[] certs, String authType) {
+            }
+
+            public void checkServerTrusted(X509Certificate[] certs, String authType) {
+            }
+        }};
+        try {
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+            HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
+            HostnameVerifier allHostsValid = (hostname, session) -> true;
+            HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
+        } catch (Exception e) {
+            return new RestTemplate();
+        }
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setBufferRequestBody(false);
+        return new RestTemplate(requestFactory);
+    }
+
     /**
      * 通过job_id查询包运行结果（BBBB接口）
      */
     private BuildPackageRunResponseDTO queryPackageRunByJobId(Submission submission, String jobId) {
         try {
-            // 暂时注释掉外部API调用，用于测试WebSocket功能
-            log.info("模拟调用BBBB接口查询包运行结果 - jobId: {}", jobId);
-            
-            // 模拟处理包运行结果
-            log.info("模拟处理包运行结果完成");
-            
-            // 模拟调用第三个接口
-            fetchReportSummary(submission, jobId, "py_ut", "report.json");
-            
-            // 返回模拟结果
-            BuildPackageRunResponseDTO dto = new BuildPackageRunResponseDTO();
-            // BuildPackageRunResponseDTO 可能没有 setCode 和 setMessage 方法，直接返回空对象
-            
-            /* 原始外部API调用代码 - 暂时注释
+                        
+            // 原始外部API调用代码 - 暂时注释
             String url = UriComponentsBuilder
                     .fromHttpUrl(buildApiConfig.getQueryPackageRunUrl())
                     .queryParam("job_id", jobId)
@@ -169,12 +198,32 @@ public class SubmissionServiceImpl implements SubmissionService {
 
             log.info("BBBB接口响应状态码: {}", response.getStatusCode());
             log.info("BBBB接口响应内容: {}", response.getBody());
+            String package_name = "";
+            String name = "";
 
             BuildPackageRunResponseDTO dto = JSON.parseObject(response.getBody(), BuildPackageRunResponseDTO.class);
 
-            if (dto != null && dto.getPackage_run_results() != null) {
-            */
-            
+            if (dto.getPackage_run_results() == null) {
+                if (submission!=null) {
+                    submission.setPassed(0);
+                    submissionRepository.save(submission);
+                    webSocketHandler.broadcastStats("refresh");
+                    return dto;
+                }
+            }
+
+            for(BuildPackageRunResponseDTO.PackageRunResult result : dto.getPackage_run_results()) {
+                if (result.getPackage_name().equalsIgnoreCase("go_ut")) {
+                    package_name = result.getPackage_name();
+                    name = "report.xml";
+                    break;
+                } else if (result.getPackage_name().equalsIgnoreCase("py_ut")) {
+                    package_name = result.getPackage_name();
+                    name = "report.json";
+                    break;
+                }
+            }
+            fetchReportSummary(submission, jobId, package_name, name);
             return dto;
         } catch (Exception e) {
             log.error("通过job_id查询包运行结果失败", e);
@@ -185,82 +234,87 @@ public class SubmissionServiceImpl implements SubmissionService {
     /**
      * 调用第三个接口获取报告汇总（通过率等）
      */
-    private void fetchReportSummary(Submission submission, String packageName, String name) {
-        try {
-            // 暂时注释掉外部API调用，用于测试WebSocket功能
-            log.info("模拟调用报告接口查询summary -  packageName: {}, name: {}", jobId, packageName, name);
-            
-            // 模拟处理报告数据
-            log.info("模拟处理报告数据完成");
-            
-            // 更新submission数据并保存到数据库
-            if (submission != null) {
-                // 获取当前比赛的总用例数
-                Integer totalCases = competitionService.getCurrentCompetition().getTotalCases();
-                if (totalCases == null) {
-                    totalCases = 20; // 默认值
+    public void fetchReportSummary(Submission submission, String jobId, String packageName, String name) {
+        final int maxPollingTimeMs = 20000;
+        final int pollingIntervalMs = 2000;
+        final Instant startTime = Instant.now();
+        boolean isSuccess = false;
+
+        while (!isSuccess) {
+            try {
+                if (Duration.between(startTime, Instant.now()).toMillis() >= maxPollingTimeMs) {
+                    break;
                 }
-                
-                // 模拟更新通过用例数和完成时间
-                submission.setPassed(totalCases); // 模拟全部通过，使用动态的总用例数
-                submission.setCompletionTime(120); // 模拟2分钟完成
-                submission.setSubmitTime(java.time.LocalDateTime.now()); // 更新提交时间
-                
-                // 保存到数据库
-                submissionRepository.save(submission);
-                log.info("报告数据已更新并保存到数据库: {}", submission);
-            }
-            
-            // 触发页面数据刷新
-            log.info("触发页面数据刷新");
-            webSocketHandler.broadcastStats("refresh");
-            
-            /* 原始外部API调用代码 - 暂时注释
-            String url = UriComponentsBuilder
+                String url = UriComponentsBuilder
                     .fromHttpUrl(buildApiConfig.getQueryReportUrl())
                     .queryParam("job_id", jobId)
                     .queryParam("package_name", packageName)
                     .queryParam("name", name)
                     .toUriString();
+                HttpHeaders headers = new HttpHeaders();
+                headers.set("Content-Type", "application/json");
 
-            log.info("调用报告接口查询summary，URL: {}", url);
+                HttpEntity<String> entity = new HttpEntity<>(headers);
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("Content-Type", "application/json");
-
-            HttpEntity<String> entity = new HttpEntity<>(headers);
-
-            ResponseEntity<String> response = restTemplate.exchange(
+                ResponseEntity<String> response = restTemplate.exchange(
                     url,
                     HttpMethod.GET,
                     entity,
                     String.class
-            );
+                );
+                
+                if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null && !response.getBody().trim().startsWith("{\"error\":}")) {
+                    int passed = 0;
+                    String responseBody = response.getBody();
+                    if (responseBody == null) {
+                        continue;
+                    }
+                    if (name.endsWith(".xml")) {
+                        try{
+                            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+                            DocumentBuilder builder = factory.newDocumentBuilder();
+                            Document doc = builder.parse(new ByteArrayInputStream(responseBody.getBytes(StandardCharsets.UTF_8)));
 
-            log.info("报告接口响应状态码: {}", response.getStatusCode());
-            log.info("报告接口响应内容: {}", response.getBody());
+                            Element rootElement = doc.getDocumentElement();
+                            int totalTests = Integer.parseInt(rootElement.getAttribute("tests"));
+                            int totalFailures = Integer.parseInt(rootElement.getAttribute("failures"));
+                            int totalErrors = Integer.parseInt(rootElement.getAttribute("errors"));
+                            passed = totalTests-totalFailures-totalErrors;
 
-            // 响应为字符串形式的JSON，示例：{"summary":{"passed":16,"total":17}}
-            if (response.getBody() != null) {
-                try {
-                    JSONObject obj = JSONObject.parseObject(response.getBody());
-                    JSONObject summary = obj.getJSONObject("summary");
-                    if (summary != null) {
-                        Integer passed = summary.getInteger("passed");
-                        Integer total = summary.getInteger("total");
-                        if (passed != null && total != null && total > 0) {
-                            double passRate = passed * 100.0 / total;
-                            log.info("用例通过率: {}% (passed={}, total={})", String.format("%.1f", passRate), passed, total);
+                        }catch(Exception e){
+                            log.error("解析XML报告失败", e);
+                            continue;
+                        }
+                        
+                    }else if (name.endsWith(".json")) {
+                        try{
+                            JSONObject obj = JSONObject.parseObject(responseBody);
+                            JSONObject summary = obj.getJSONObject("summary");
+                            passed = summary != null ? summary.getInteger("passed") : 0;
+                        }catch(Exception e){
+                            log.error("解析JSON报告失败", e);
+                            continue;
                         }
                     }
-                } catch (Exception parseEx) {
-                    log.warn("报告summary解析失败", parseEx);
+                    
+                    if (submission != null) {
+                        submission.setPassed(passed);
+                        submissionRepository.save(submission);
+                        webSocketHandler.broadcastStats("refresh");
+                        isSuccess = true;
+                    }
+                } else {
+                    Thread.sleep(pollingIntervalMs);
+                }
+            } catch (Exception e) {
+                try{
+                    Thread.sleep(pollingIntervalMs);
+                }catch(InterruptedException ie){
+                    log.error("轮询等待被中断", ie);
+                    Thread.currentThread().interrupt();
+                    break;
                 }
             }
-            */
-            
-        } catch (Exception e) {
-            log.error("获取报告汇总失败", e);
         }
     }
 
@@ -374,7 +428,7 @@ public class SubmissionServiceImpl implements SubmissionService {
                 HttpEntity<String> entity = new HttpEntity<>(headers);
                 
                 // 发送GET请求
-                ResponseEntity<String> response = restTemplate.exchange(
+                ResponseEntity<String> response = createRestTemplate().exchange(
                         url,
                         HttpMethod.GET,
                         entity,
