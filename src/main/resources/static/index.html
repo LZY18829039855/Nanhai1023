@@ -1201,11 +1201,29 @@
                 // 按顺序添加到列表末尾（因为后端已按降序返回，所以最新的会在最上面）
                 submissionFeed.appendChild(buildEl);
                 
-                // 如果是新提交且是满分，触发庆祝特效
+                // 如果是新提交且是满分，更新用户首次成功提交记录并触发庆祝特效
                 if (isNewSubmission && isFullSuccess) {
                   console.log('检测到新的满分提交，触发庆祝特效:', submission);
-                  triggerCelebration(userInfo ? userInfo.userName : '未知用户');
-                  updateRankings();
+                  const userName = userInfo ? userInfo.userName : '未知用户';
+                  
+                  // 更新用户首次成功提交记录（去重逻辑）
+                  if (userFirstSuccess[userName] && userFirstSuccess[userName].time === null) {
+                    // 记录首次成功的时间
+                    const currentTime = 20 * 60 - totalSeconds; // 从比赛开始到现在的秒数
+                    userFirstSuccess[userName].time = currentTime;
+                    
+                    // 记录完成时间
+                    const now = new Date();
+                    userFirstSuccess[userName].finishTime = now.toLocaleTimeString('zh-CN', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit'
+                    });
+                    
+                    // 只有首次成功才触发庆祝特效和更新排行榜
+                    triggerCelebration(userName);
+                    updateRankings();
+                  }
                 }
               });
               
@@ -1293,9 +1311,25 @@
          
          // 只有100%成功率才触发庆祝和更新排行榜
          if (isFullSuccess && !skipCelebration) {
-           // 所有用户成功提交都触发庆祝特效
-           triggerCelebration(userInfo ? userInfo.userName : '未知用户');
-           updateRankings();
+           // 更新用户首次成功提交记录（去重逻辑）
+           const userName = userInfo ? userInfo.userName : '未知用户';
+           if (userFirstSuccess[userName] && userFirstSuccess[userName].time === null) {
+             // 记录首次成功的时间
+             const currentTime = 20 * 60 - totalSeconds; // 从比赛开始到现在的秒数
+             userFirstSuccess[userName].time = currentTime;
+             
+             // 记录完成时间
+             const now = new Date();
+             userFirstSuccess[userName].finishTime = now.toLocaleTimeString('zh-CN', {
+               hour: '2-digit',
+               minute: '2-digit',
+               second: '2-digit'
+             });
+             
+             // 只有首次成功才触发庆祝特效和更新排行榜
+             triggerCelebration(userName);
+             updateRankings();
+           }
          }
        }
        
@@ -1593,46 +1627,73 @@
           ];
         }
         
-        // 更新页面实时TOP3显示的小组信息
+        // 更新页面实时TOP3显示
         if (allRankedUsers.length >= 1) {
           const top1 = allRankedUsers[0];
           console.log('TOP1用户数据:', top1);
-          const top1GroupEl = document.querySelector('#top1 .col-span-3 span');
+          
+          // 更新第一名用户名
+          document.querySelector('#realtime-top1-name').textContent = top1.user;
+          
+          // 更新第一名小组信息
+          const top1GroupEl = document.querySelector('#realtime-top1-group');
           if (top1GroupEl) {
             top1GroupEl.className = top1.isAiGroup
               ? 'bg-ai/20 text-ai px-2 py-0.5 rounded-full text-xs' 
               : 'bg-nonai/20 text-nonai px-2 py-0.5 rounded-full text-xs';
             const groupText = top1.subGroup ? top1.subGroup : (top1.isAiGroup ? 'AI组' : '非AI组');
-            console.log('TOP1小组名称:', groupText);
             top1GroupEl.textContent = groupText;
+          }
+          
+          // 更新第一名时间
+          if (top1.finishTime) {
+            document.querySelector('#realtime-top1-time').textContent = top1.finishTime;
           }
         }
         
         if (allRankedUsers.length >= 2) {
           const top2 = allRankedUsers[1];
           console.log('TOP2用户数据:', top2);
-          const top2GroupEl = document.querySelector('#top2 .col-span-3 span');
+          
+          // 更新第二名用户名
+          document.querySelector('#realtime-top2-name').textContent = top2.user;
+          
+          // 更新第二名小组信息
+          const top2GroupEl = document.querySelector('#realtime-top2-group');
           if (top2GroupEl) {
             top2GroupEl.className = top2.isAiGroup
               ? 'bg-ai/20 text-ai px-2 py-0.5 rounded-full text-xs' 
               : 'bg-nonai/20 text-nonai px-2 py-0.5 rounded-full text-xs';
             const groupText = top2.subGroup ? top2.subGroup : (top2.isAiGroup ? 'AI组' : '非AI组');
-            console.log('TOP2小组名称:', groupText);
             top2GroupEl.textContent = groupText;
+          }
+          
+          // 更新第二名时间
+          if (top2.finishTime) {
+            document.querySelector('#realtime-top2-time').textContent = top2.finishTime;
           }
         }
         
         if (allRankedUsers.length >= 3) {
           const top3 = allRankedUsers[2];
           console.log('TOP3用户数据:', top3);
-          const top3GroupEl = document.querySelector('#top3 .col-span-3 span');
+          
+          // 更新第三名用户名
+          document.querySelector('#realtime-top3-name').textContent = top3.user;
+          
+          // 更新第三名小组信息
+          const top3GroupEl = document.querySelector('#realtime-top3-group');
           if (top3GroupEl) {
             top3GroupEl.className = top3.isAiGroup
               ? 'bg-ai/20 text-ai px-2 py-0.5 rounded-full text-xs' 
               : 'bg-nonai/20 text-nonai px-2 py-0.5 rounded-full text-xs';
             const groupText = top3.subGroup ? top3.subGroup : (top3.isAiGroup ? 'AI组' : '非AI组');
-            console.log('TOP3小组名称:', groupText);
             top3GroupEl.textContent = groupText;
+          }
+          
+          // 更新第三名时间
+          if (top3.finishTime) {
+            document.querySelector('#realtime-top3-time').textContent = top3.finishTime;
           }
         }
         
