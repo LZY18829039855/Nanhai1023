@@ -45,10 +45,6 @@ public class CompetitionStatsDTO {
      */
     private Integer totalParticipants;
     
-    /**
-     * 总体通过率
-     */
-    private Double overallPassRate;
     
     /**
      * AI组通过率

@@ -85,17 +85,6 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
            ") as user_max", nativeQuery = true)
     Long getNonAiGroupMaxPassedSum();
     
-    /**
-     * 获取所有用户的最好通过用例数总和
-     */
-    @Query(value = "SELECT COALESCE(SUM(max_passed), 0) FROM (" +
-           "SELECT MAX(s.passed) as max_passed " +
-           "FROM submissions s " +
-           "INNER JOIN user_info u ON s.user_id = u.id " +
-           "WHERE s.passed IS NOT NULL " +
-           "GROUP BY s.user_id" +
-           ") as user_max", nativeQuery = true)
-    Long getAllUsersMaxPassedSum();
     
         /**
          * 获取指定小组的最好通过用例数总和

@@ -369,13 +369,19 @@
   <div class="container mx-auto px-4 py-6 md:py-8 relative z-20">
      <!-- 头部区域 -->
      <header class="mb-6 md:mb-8 text-center">
-       <h1 class="text-[clamp(1.8rem,4vw,3rem)] font-bold mb-3 text-yellow-400">日新月异，AI的力量</h1>
-       <p class="text-xl md:text-2xl font-bold max-w-2xl mx-auto bg-clip-text text-transparent bg-gradient-to-r from-ai to-primary">云核心网2025南海会议 · 实战演练</p>
+       <h1 class="text-[clamp(2.4rem,5.5vw,4rem)] font-bold mb-3 text-yellow-400">日新月异，AI的力量</h1>
+       <p class="text-3xl md:text-4xl font-bold max-w-2xl mx-auto bg-clip-text text-transparent bg-gradient-to-r from-ai to-primary">云核心网2025南海会议</p>
       
        <!-- 赛事状态信息 -->
        <div class="mt-6 flex flex-wrap justify-center gap-3 md:gap-4">
+          <!-- 开始比赛按钮 -->
+          <div id="start-competition-container" class="bg-gradient-to-r from-green-500/20 to-green-600/20 backdrop-blur-sm px-6 py-4 rounded-full border border-green-500/30 flex items-center gap-3 hover:border-green-500/50 transition-all duration-300 cursor-pointer">
+            <i class="fa fa-play-circle text-green-400 text-xl"></i>
+            <span class="text-base md:text-lg font-bold text-green-400">开始比赛</span>
+          </div>
+          
           <!-- 倒计时（20分钟） -->
-          <div class="bg-dark/50 backdrop-blur-sm px-3 py-2 rounded-full border border-primary/20 flex items-center gap-2 hover:border-primary/40 transition-all duration-300">
+          <div id="countdown-container" class="bg-dark/50 backdrop-blur-sm px-3 py-2 rounded-full border border-primary/20 flex items-center gap-2 hover:border-primary/40 transition-all duration-300">
             <div class="relative w-8 h-8">
               <svg class="w-8 h-8" viewBox="0 0 100 100">
                 <circle cx="50" cy="50" r="45" fill="none" stroke="#1e293b" stroke-width="10"></circle>
@@ -386,11 +392,6 @@
             <span class="text-base md:text-lg">剩余时间: <span id="countdown" class="text-white font-mono font-bold text-lg md:text-xl">20:00</span></span>
           </div>
          
-         <!-- 总体通过率 -->
-         <div class="bg-dark/50 backdrop-blur-sm px-5 py-3 rounded-full border border-primary/20 flex items-center gap-2 hover:border-primary/40 transition-all duration-300">
-           <i class="fa fa-check-circle text-green-400 text-lg"></i>
-           <span class="text-base md:text-lg">总体通过率: <span id="overall-pass-rate" class="text-white font-semibold text-lg md:text-xl">72.3%</span></span>
-         </div>
          
          <div class="bg-dark/50 backdrop-blur-sm px-5 py-3 rounded-full border border-primary/20 flex items-center gap-2 hover:border-primary/40 transition-all duration-300">
            <i class="fa fa-users text-primary text-lg"></i>
@@ -679,6 +680,14 @@
        // 创建二进制字符动画背景
        createBinaryCharactersBackground();
        
+       // 添加开始比赛按钮的点击事件
+       const startCompetitionBtn = document.getElementById('start-competition-container');
+       if (startCompetitionBtn) {
+         startCompetitionBtn.addEventListener('click', function() {
+           startCompetition();
+         });
+       }
+       
        // 初始化语音合成（确保语音列表加载）
        if ('speechSynthesis' in window) {
          window.speechSynthesis.getVoices();
@@ -703,6 +712,8 @@
       const countdownEl = document.getElementById('countdown');
       const timerCircle = document.getElementById('timer-circle');
       const totalCircleLength = 283; // 圆的周长
+      let countdownInterval = null; // 倒计时定时器
+      let competitionStarted = false; // 比赛是否已开始
       
       // 创建音频上下文用于滴答声
       const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -730,7 +741,7 @@
       }
       
       function updateCountdown() {
-        if (totalSeconds <= 0 || window.competitionEnded) {
+        if (!competitionStarted || totalSeconds <= 0 || window.competitionEnded) {
           countdownEl.textContent = "00:00";
           countdownEl.classList.add('text-red-500');
           countdownEl.classList.add('animate-pulse');
@@ -772,8 +783,91 @@
         }
       }
       
-      const countdownInterval = setInterval(updateCountdown, 1000);
-      updateCountdown();
+      // 倒计时不自动开始，等待用户点击开始比赛按钮
+      
+      // 开始比赛功能
+      function startCompetition() {
+        if (competitionStarted) return; // 防止重复开始
+        
+        competitionStarted = true;
+        console.log('比赛开始！');
+        
+        // 将开始比赛按钮置灰并禁用
+        const startBtn = document.getElementById('start-competition-container');
+        if (startBtn) {
+          startBtn.classList.remove('bg-gradient-to-r', 'from-green-500/20', 'to-green-600/20', 'border-green-500/30', 'hover:border-green-500/50', 'cursor-pointer');
+          startBtn.classList.add('bg-gray-500/20', 'border-gray-500/30', 'cursor-not-allowed', 'opacity-60');
+          
+          // 更新按钮内容
+          const icon = startBtn.querySelector('i');
+          const text = startBtn.querySelector('span');
+          if (icon) {
+            icon.className = 'fa fa-check-circle text-gray-400 text-xl';
+          }
+          if (text) {
+            text.textContent = '比赛已开始';
+            text.className = 'text-base md:text-lg font-bold text-gray-400';
+          }
+          
+          // 移除点击事件
+          startBtn.onclick = null;
+        }
+        
+        // 立即显示开始比赛的庆祝特效
+        showCompetitionStartCelebration();
+        
+        // 开始倒计时
+        countdownInterval = setInterval(updateCountdown, 1000);
+        updateCountdown();
+        
+        // 开始实时数据更新（异步执行，不阻塞庆祝特效）
+        updateAllRealTimeData();
+      }
+      
+      // 显示比赛开始庆祝特效
+      function showCompetitionStartCelebration() {
+        const celebrationContainer = document.getElementById('celebration');
+        const celebrationText = document.getElementById('celebration-text');
+        
+        // 设置庆祝文本
+        celebrationText.textContent = "比赛开始！";
+        celebrationText.className = "celebration-text";
+        celebrationText.style.color = "#00F0FF";
+        celebrationText.style.textShadow = "0 0 40px rgba(0, 240, 255, 1), 0 0 80px rgba(0, 240, 255, 0.8), 0 0 120px rgba(0, 200, 255, 0.6), 0 0 160px rgba(0, 180, 255, 0.4), 0 4px 8px rgba(0, 0, 0, 0.5)";
+        celebrationText.style.fontSize = "6rem";
+        celebrationText.style.fontWeight = "900";
+        celebrationText.style.letterSpacing = "0.2em";
+        celebrationText.style.whiteSpace = "nowrap";
+        celebrationText.style.opacity = "1"; // 确保文字立即可见
+        
+        // 语音播报比赛开始
+        speakText("比赛开始！祝各位参赛选手取得优异成绩！");
+        
+        // 显示庆祝容器
+        celebrationContainer.classList.add('active');
+        
+        // 添加文字动画（快速弹出效果）
+        celebrationText.style.animation = 'popIn 0.2s ease-out';
+        
+        // 创建彩色纸屑和烟花
+        createConfetti(200);
+        createFireworks(10);
+        
+        // 3秒后结束庆祝动画
+        setTimeout(() => {
+          // 淡出文字
+          celebrationText.style.animation = 'fadeOut 1s forwards';
+          
+          // 1秒后隐藏容器
+          setTimeout(() => {
+            celebrationContainer.classList.remove('active');
+            // 清除所有动画元素
+            while (celebrationContainer.children.length > 1) {
+              celebrationContainer.removeChild(celebrationContainer.lastChild);
+            }
+          }, 1000);
+        }, 3000);
+      }
       
       // 从后端获取用户数据
       let users = [];
@@ -895,8 +989,7 @@
       // 立即初始化用户数据
       initUserData().then(() => {
         // 用户数据加载完成后，初始化其他功能
-        // 自动开始比赛
-        startCompetitionAutomatically();
+        // 不再自动开始比赛，等待用户点击开始比赛按钮
         
         // TOP3数据将从页面数据中获取，不需要调用接口
         
@@ -909,8 +1002,7 @@
         // 初始化实时提交动态
         loadRecentSubmissions();
         
-        // 开始实时数据更新
-        updateAllRealTimeData();
+        // 实时数据更新将在比赛开始后启动
       });
       
       // TOP3数据现在从页面数据中获取，不再需要调用接口
@@ -999,26 +1091,6 @@
         }
       }
       
-      // 自动开始比赛函数
-      async function startCompetitionAutomatically() {
-        try {
-          const response = await fetch('/api/competition/start', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            }
-          });
-          
-          if (response.ok) {
-            const result = await response.json();
-            console.log('比赛开始时间已更新:', result.data);
-          } else {
-            console.warn('无法自动开始比赛，使用默认时间');
-          }
-        } catch (error) {
-          console.warn('自动开始比赛失败:', error);
-        }
-      }
       
       // 构建ID生成函数
       function generateBuildId() {
@@ -1762,26 +1834,6 @@
       // 初始生成排行榜
       updateRankings();
       
-      // 更新总体通过率
-      function updateOverallPassRate() {
-        // 计算所有用户的最好通过用例数总和
-        let totalMaxPassedSum = 0;
-        Object.values(userFirstSuccess).forEach(data => {
-          if (data.time !== null) {
-            // 假设每个成功用户的最好通过用例数为20（全部通过）
-            totalMaxPassedSum += 20;
-          }
-        });
-        
-        const totalUsers = users.length;
-        
-        if (totalUsers > 0) {
-          // 总体通过率 = 所有成员最好通过的用例数总和 / (总人数 × total_cases) × 100%
-          const totalCases = window.totalCases || 20; // 使用动态的总用例数
-          const overallRate = ((totalMaxPassedSum / (totalUsers * totalCases)) * 100).toFixed(1);
-          document.getElementById('overall-pass-rate').textContent = `${overallRate}%`;
-        }
-      }
       
       // 从API更新比赛统计数据
       async function updateCompetitionStatsFromAPI() {
@@ -1807,10 +1859,6 @@
                 console.log('定时更新使用默认总用例数:', window.totalCases);
               }
               
-        // 更新总体通过率
-              if (stats.overallPassRate !== undefined) {
-                document.getElementById('overall-pass-rate').textContent = `${stats.overallPassRate}%`;
-              }
               
               // 更新总人数
               if (stats.totalParticipants !== undefined) {
@@ -1890,7 +1938,7 @@
         }
       }
       
-      // 从API更新TOP3数据（现在从所有提交记录中提取TOP3）
+      // 从API更新TOP3数据（现在从所有提交记录中提取TOP3，支持去重）
       async function updateTop3FromAPI() {
         try {
           const response = await fetch('/api/submission/all');
@@ -1900,8 +1948,27 @@
               // 从所有提交记录中提取TOP3（按提交时间升序，最早提交通过的在前面）
               const allSubmissions = result.data;
               const totalCases = window.totalCases || 20; // 使用动态的总用例数
-              const top3Submissions = allSubmissions
+              
+              // 按用户去重：每个用户只取最早的成功提交记录
+              const userFirstSuccessMap = new Map();
+              allSubmissions
                 .filter(submission => submission.passed === totalCases) // 只取全部通过的
+                .forEach(submission => {
+                  const userId = submission.userId;
+                  if (!userFirstSuccessMap.has(userId)) {
+                    // 如果该用户还没有记录，直接添加
+                    userFirstSuccessMap.set(userId, submission);
+                  } else {
+                    // 如果该用户已有记录，比较提交时间，保留更早的
+                    const existingSubmission = userFirstSuccessMap.get(userId);
+                    if (new Date(submission.submitTime) < new Date(existingSubmission.submitTime)) {
+                      userFirstSuccessMap.set(userId, submission);
+                    }
+                  }
+                });
+              
+              // 转换为数组并按提交时间升序排序，取前3个
+              const top3Submissions = Array.from(userFirstSuccessMap.values())
                 .sort((a, b) => new Date(a.submitTime) - new Date(b.submitTime)) // 按提交时间升序
                 .slice(0, 3); // 取前3个
               
@@ -1920,7 +1987,7 @@
               });
               
               updateTop3Display(top3Data);
-              console.log('TOP3数据更新成功');
+              console.log('TOP3数据更新成功（已去重）:', top3Data);
             }
           }
         } catch (error) {
@@ -1930,10 +1997,12 @@
       
       // 统一的实时数据更新函数
       async function updateAllRealTimeData() {
+        if (!competitionStarted) return; // 比赛未开始时不更新数据
+        
         try {
           console.log('开始实时数据更新...');
           
-          // 1. 更新比赛统计数据（包括总体通过率、AI组和非AI组数据）
+          // 1. 更新比赛统计数据（包括AI组和非AI组数据）
           await updateCompetitionStatsFromAPI();
           
           // 2. 更新最近的提交记录
@@ -2460,10 +2529,6 @@
           console.log('使用默认总用例数:', window.totalCases);
         }
         
-        // 更新总体通过率
-        if (stats.overallPassRate !== null && stats.overallPassRate !== undefined) {
-          document.getElementById('overall-pass-rate').textContent = `${stats.overallPassRate.toFixed(1)}%`;
-        }
         
         // 更新AI组通过率
         if (stats.aiPassRate !== null && stats.aiPassRate !== undefined) {
@@ -2611,8 +2676,6 @@
       // 启动滚动动画
       animateScroll();
       
-      // 初始计算总体通过率
-      updateOverallPassRate();
       
       // 结束比赛按钮事件 - 使用更安全的方式绑定
       const endCompetitionBtn = document.getElementById('end-competition');
@@ -2655,7 +2718,9 @@
         }
         
         window.competitionEnded = true;
-        clearInterval(countdownInterval);
+        if (countdownInterval) {
+          clearInterval(countdownInterval);
+        }
         clearInterval(realTimeUpdateInterval); // 停止实时数据更新
         
         // 显示比赛结束庆祝效果

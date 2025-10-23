@@ -79,10 +79,6 @@ public class CompetitionServiceImpl implements CompetitionService {
         
         stats.setTotalParticipants(totalUsers.intValue());
         
-        // 计算总体通过率：所有成员最好通过的用例数总和 / (总人数 × total_cases)
-        Long allUsersMaxPassedSum = submissionRepository.getAllUsersMaxPassedSum();
-        double overallPassRate = totalUsers > 0 ? (allUsersMaxPassedSum.doubleValue() / (totalUsers * totalCases)) * 100 : 0.0;
-        stats.setOverallPassRate(Math.round(overallPassRate * 100.0) / 100.0); // 保留两位小数
         
         // AI组统计
         stats.setAiTotalCount(aiGroupUsers.intValue());
